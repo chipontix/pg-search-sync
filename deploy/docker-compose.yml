@@ -34,7 +34,9 @@ services:
     entrypoint: [sh, -c]
     command:
       - >-
-        rpk -X brokers=redpanda:9092 topic create products.cdc -p 6 -r 1 || true
+        rpk -X brokers=redpanda:9092 topic create products.cdc -p 6 -r 1 &&
+        rpk -X brokers=redpanda:9092 topic create products.retry -p 3 -r 1 &&
+        rpk -X brokers=redpanda:9092 topic create products.dlq -p 1 -r 1 || true
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.19.4

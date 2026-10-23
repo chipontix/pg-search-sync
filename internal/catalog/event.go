@@ -13,7 +13,9 @@ const (
 	OpDelete = "delete"
 )
 
-// Product is the indexed document.
+// Product is the indexed document. Deleted products stay in the index as
+// tombstones (Deleted=true) so a late retry of an older version cannot
+// resurrect them; search filters them out.
 type Product struct {
 	ID         int64     `json:"id"`
 	SKU        string    `json:"sku,omitempty"`
@@ -50,6 +52,9 @@ func FromRow(op string, row map[string]any, sourceTime time.Time) (Event, error)
 		return Event{}, fmt.Errorf("version: unexpected %T", row["version"])
 	}
 	if op == OpDelete {
+		// Versions are even (sequence step 2): old+1 beats the deleted row and
+		// loses to any later re-insert of the same id.
+		p.Version++
 		p.Deleted = true
 		return Event{Op: op, Doc: p, SourceTime: sourceTime}, nil
 	}

@@ -1,5 +1,5 @@
 // Package es is the slice of the Elasticsearch REST API this project needs:
-// create index, bulk index/delete, search.
+// create index, bulk index with external versions, search.
 package es
 
 import (
@@ -73,17 +73,15 @@ func (c *Client) EnsureIndex(ctx context.Context, index string) error {
 	return err
 }
 
-// Bulk indexes live docs and deletes Deleted ones, returning the HTTP status
-// of every item in input order.
-func (c *Client) Bulk(ctx context.Context, index string, docs []catalog.Product) ([]int, error) {
+// BulkIndex writes docs with version_type=external and returns the HTTP status
+// of every item, in input order. A 409 means the index already holds this or
+// a newer version.
+func (c *Client) BulkIndex(ctx context.Context, index string, docs []catalog.Product) ([]int, error) {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	for i := range docs {
-		if docs[i].Deleted {
-			fmt.Fprintf(&buf, `{"delete":{"_index":%q,"_id":"%d"}}`+"\n", index, docs[i].ID)
-			continue
-		}
-		fmt.Fprintf(&buf, `{"index":{"_index":%q,"_id":"%d"}}`+"\n", index, docs[i].ID)
+		fmt.Fprintf(&buf, `{"index":{"_index":%q,"_id":"%d","version":%d,"version_type":"external"}}`+"\n",
+			index, docs[i].ID, docs[i].Version)
 		if err := enc.Encode(&docs[i]); err != nil {
 			return nil, err
 		}
@@ -105,9 +103,7 @@ func (c *Client) Bulk(ctx context.Context, index string, docs []catalog.Product)
 	}
 	statuses := make([]int, len(docs))
 	for i, it := range r.Items {
-		for _, v := range it {
-			statuses[i] = v.Status
-		}
+		statuses[i] = it["index"].Status
 	}
 	return statuses, nil
 }
