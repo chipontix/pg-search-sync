@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 	"net/http"
+	"time"
 
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -58,4 +59,27 @@ func histQuantile(before, after []*dto.Bucket, q float64) float64 {
 		lower, prev = upper, c
 	}
 	return after[len(after)-1].GetUpperBound()
+}
+
+// sampleGauge scrapes one gauge from url once a second for d and returns the
+// values; it just sleeps for d if url is empty.
+func sampleGauge(url, name string, d time.Duration) []float64 {
+	if url == "" {
+		time.Sleep(d)
+		return nil
+	}
+	var vals []float64
+	for deadline := time.Now().Add(d); time.Now().Before(deadline); time.Sleep(time.Second) {
+		resp, err := http.Get(url)
+		if err != nil {
+			continue
+		}
+		parser := expfmt.NewTextParser(model.UTF8Validation)
+		families, err := parser.TextToMetricFamilies(resp.Body)
+		resp.Body.Close()
+		if f, ok := families[name]; err == nil && ok && len(f.Metric) > 0 {
+			vals = append(vals, f.Metric[0].GetGauge().GetValue())
+		}
+	}
+	return vals
 }

@@ -90,6 +90,39 @@ services:
     restart: "no"
     entrypoint: [reconcile]
 
+  # Second read path (profile couchbase): Couchbase → go-dcp-elasticsearch → products_cb.
+  couchbase:
+    image: couchbase/server:community-7.6.2
+    profiles: [couchbase]
+    ports: ["8091-8096:8091-8096", "11210:11210"]
+    healthcheck: {test: [CMD-SHELL, "curl -fs localhost:8091/ui/index.html >/dev/null"], interval: 3s, retries: 60}
+
+  couchbase-init:
+    image: couchbase/server:community-7.6.2
+    profiles: [couchbase]
+    depends_on: {couchbase: {condition: service_healthy}}
+    entrypoint: [sh, -c]
+    command:
+      - >-
+        cli="couchbase-cli";
+        $$cli cluster-init -c couchbase:8091 --cluster-username admin --cluster-password password
+        --services data,index,query --cluster-ramsize 1536 --cluster-index-ramsize 256 --index-storage-setting default || true;
+        $$cli bucket-create -c couchbase:8091 -u admin -p password --bucket catalog --bucket-type couchbase --bucket-ramsize 1024 --bucket-replica 0 --wait || true;
+        $$cli bucket-create -c couchbase:8091 -u admin -p password --bucket dcp-meta --bucket-type couchbase --bucket-ramsize 128 --bucket-replica 0 --wait || true;
+        until cbq -e couchbase:8093 -u admin -p password -q -s "CREATE INDEX idx_id_version IF NOT EXISTS ON catalog(id, version)" | grep -q '"status": "success"'; do sleep 2; done
+
+  dcp-indexer:
+    <<: *app
+    profiles: [couchbase]
+    command: [dcp-indexer]
+    environment:
+      <<: *app-env
+      CB_HOSTS: couchbase:8091
+      ES_INDEX: products_cb
+      METRIC_PORT: "18092"
+    depends_on: {couchbase-init: {condition: service_completed_successfully}, elasticsearch: {condition: service_healthy}}
+    ports: ["18092:18092"]
+
   prometheus:
     image: prom/prometheus:v3.5.0
     volumes: [./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro]

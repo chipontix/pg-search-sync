@@ -18,9 +18,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	"github.com/chipontix/pg-search-sync/internal/app"
 	"github.com/chipontix/pg-search-sync/internal/es"
 )
@@ -51,6 +48,11 @@ type result struct {
 	// acknowledged, i.e. everything except the Elasticsearch refresh wait.
 	PipelineP50ms float64 `json:"pipeline_p50_ms,omitempty"`
 	PipelineP99ms float64 `json:"pipeline_p99_ms,omitempty"`
+	Source        string  `json:"source"`
+	// cbgo_total_lag_current sampled once a second: DCP mutations the
+	// connector has not yet processed, summed over vBuckets.
+	DCPLagMax  float64 `json:"dcp_lag_max,omitempty"`
+	DCPLagMean float64 `json:"dcp_lag_mean,omitempty"`
 }
 
 func main() {
@@ -63,27 +65,28 @@ func main() {
 	poll := flag.Duration("poll", 20*time.Millisecond, "search poll interval")
 	seed := flag.Int("seed", 0, "insert this many rows with COPY and exit")
 	lagURL := flag.String("lag-metrics", app.Env("INDEXER_METRICS", ""), "indexer /metrics URL for the pipeline-only lag split")
+	source := flag.String("source", "postgres", "where to write: postgres or couchbase")
+	dcpURL := flag.String("dcp-metrics", app.Env("DCP_METRICS", ""), "dcp-indexer /metrics URL; samples cbgo_total_lag_current")
 	flag.Parse()
 
 	ctx := context.Background()
-	cfg, err := pgxpool.ParseConfig(app.Env("PG_DSN", "postgres://app:app@localhost:5432/catalog"))
-	if err != nil {
-		app.Fatal("pg dsn", "error", err)
+	var st store
+	if *source == "couchbase" {
+		st = newCouchbaseStore()
+	} else {
+		st = newPostgresStore(ctx, *workers)
 	}
-	cfg.MaxConns = int32(*workers)
-	pool, err := pgxpool.NewWithConfig(ctx, cfg)
-	if err != nil {
-		app.Fatal("postgres", "error", err)
-	}
-	defer pool.Close()
 
 	if *seed > 0 {
-		seedRows(ctx, pool, *seed)
+		if err := st.seed(ctx, *seed); err != nil {
+			app.Fatal("seed", "error", err)
+		}
+		slog.Info("seeded", "rows", *seed)
 		return
 	}
 
-	var maxID int64
-	if err := pool.QueryRow(ctx, "SELECT coalesce(max(id), 0) FROM products").Scan(&maxID); err != nil {
+	maxID, err := st.maxID(ctx)
+	if err != nil {
 		app.Fatal("max id", "error", err)
 	}
 	client := es.New(app.Env("ES_URL", "http://localhost:9200"))
@@ -135,11 +138,9 @@ func main() {
 				var err error
 				if maxID > 0 && rand.Float64() < *updates {
 					id = 1 + rand.Int64N(maxID)
-					err = pool.QueryRow(ctx,
-						"UPDATE products SET price_cents = $2, stock = $3 WHERE id = $1 RETURNING version",
-						id, 100+rand.Int64N(1_000_000), rand.Int32N(1000)).Scan(&version)
+					version, err = st.update(ctx, id)
 				} else {
-					err = insertOne(ctx, pool).Scan(&id, &version)
+					id, version, err = st.insert(ctx)
 				}
 				written := time.Now()
 				if err != nil {
@@ -214,7 +215,7 @@ func main() {
 	writes.Store(0)
 	sampling.Store(true)
 	measured := time.Now()
-	time.Sleep(*duration)
+	dcpLag := sampleGauge(*dcpURL, "cbgo_total_lag_current", *duration)
 	sampling.Store(false)
 	close(stopWrites)
 	wg.Wait()
@@ -253,6 +254,13 @@ func main() {
 		ProbeP99ms:   pct(probes, 0.99),
 		ProbeMaxms:   pct(probes, 1),
 	}
+	r.Source = *source
+	if len(dcpLag) > 0 {
+		r.DCPLagMax = slices.Max(dcpLag)
+		for _, v := range dcpLag {
+			r.DCPLagMean += v / float64(len(dcpLag))
+		}
+	}
 	if before != nil && after != nil {
 		r.PipelineP50ms = histQuantile(before, after, 0.50) * 1000
 		r.PipelineP99ms = histQuantile(before, after, 0.99) * 1000
@@ -276,31 +284,4 @@ func randomTitle() (title, brand, category string) {
 	brand = brands[rand.IntN(len(brands))]
 	category = categories[rand.IntN(len(categories))]
 	return fmt.Sprintf("%s %s %s %s", brand, adjectives[rand.IntN(len(adjectives))], adjectives[rand.IntN(len(adjectives))], category), brand, category
-}
-
-func insertOne(ctx context.Context, pool *pgxpool.Pool) pgx.Row {
-	title, brand, category := randomTitle()
-	return pool.QueryRow(ctx,
-		`INSERT INTO products (sku, title, brand, category, price_cents, stock)
-		 VALUES ('SKU-' || gen_random_uuid(), $1, $2, $3, $4, $5) RETURNING id, version`,
-		title, brand, category, 100+rand.Int64N(1_000_000), rand.Int32N(1000))
-}
-
-func seedRows(ctx context.Context, pool *pgxpool.Pool, n int) {
-	rows := make([][]any, n)
-	for i := range rows {
-		title, brand, category := randomTitle()
-		rows[i] = []any{fmt.Sprintf("SEED-%d-%d", time.Now().UnixNano(), i), title, brand, category, 100 + rand.Int64N(1_000_000), rand.Int32N(1000)}
-	}
-	conn, err := pool.Acquire(ctx)
-	if err != nil {
-		app.Fatal("acquire", "error", err)
-	}
-	defer conn.Release()
-	copied, err := conn.Conn().CopyFrom(ctx, []string{"products"},
-		[]string{"sku", "title", "brand", "category", "price_cents", "stock"}, pgx.CopyFromRows(rows))
-	if err != nil {
-		app.Fatal("copy", "error", err)
-	}
-	slog.Info("seeded", "rows", copied)
 }

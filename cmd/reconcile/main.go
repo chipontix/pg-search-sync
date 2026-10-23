@@ -18,6 +18,7 @@ import (
 
 	"github.com/chipontix/pg-search-sync/internal/app"
 	"github.com/chipontix/pg-search-sync/internal/catalog"
+	"github.com/chipontix/pg-search-sync/internal/couchbase"
 	"github.com/chipontix/pg-search-sync/internal/es"
 )
 
@@ -41,20 +42,29 @@ func (r report) ok() bool { return r.Missing+r.Stale+r.Extra+r.Ahead == 0 }
 
 func main() {
 	wait := flag.Duration("wait", 2*time.Minute, "keep re-checking until consistent or this long")
+	source := flag.String("source", "postgres", "source of truth: postgres or couchbase")
 	repair := flag.Bool("repair", false, "if still inconsistent after -wait, re-emit the affected rows and check again")
 	flag.Parse()
 	ctx := context.Background()
 
-	conn, err := pgx.Connect(ctx, app.Env("PG_DSN", "postgres://app:app@localhost:5432/catalog"))
-	if err != nil {
-		app.Fatal("postgres", "error", err)
+	var scan sourceScan
+	var conn *pgx.Conn
+	if *source == "couchbase" {
+		scan = couchbaseScan(couchbase.New(app.Env("CB_QUERY_URL", "http://localhost:8093"),
+			app.Env("CB_USER", "admin"), app.Env("CB_PASSWORD", "password")), app.Env("CB_BUCKET", "catalog"))
+	} else {
+		var err error
+		conn, err = pgx.Connect(ctx, app.Env("PG_DSN", "postgres://app:app@localhost:5432/catalog"))
+		if err != nil {
+			app.Fatal("postgres", "error", err)
+		}
+		scan = postgresScan(conn)
 	}
-	scan := postgresScan(conn)
 	client := es.New(app.Env("ES_URL", "http://localhost:9200"))
 	index := app.Env("ES_INDEX", "products")
 
 	r := converge(ctx, scan, client, index, *wait)
-	if !r.ok() && *repair {
+	if !r.ok() && *repair && conn != nil {
 		n, err := repairAll(ctx, conn, client, index, r)
 		if err != nil {
 			app.Fatal("repair", "error", err)
@@ -133,6 +143,27 @@ func postgresScan(conn *pgx.Conn) sourceScan {
 			return e, true, err
 		}
 		return next, func() { rows.Close(); _ = tx.Rollback(ctx) }, nil
+	}
+}
+
+// couchbaseScan reads every document's id and version through N1QL (needs
+// the idx_id_version index the compose init creates).
+func couchbaseScan(cb *couchbase.Client, bucket string) sourceScan {
+	return func(ctx context.Context) (func() (entry, bool, error), func(), error) {
+		rows, err := cb.Query(ctx, fmt.Sprintf("SELECT d.id, d.version FROM `%s` d WHERE d.id IS VALUED ORDER BY d.id", bucket))
+		if err != nil {
+			return nil, nil, err
+		}
+		next := func() (entry, bool, error) {
+			if len(rows) == 0 {
+				return entry{}, false, nil
+			}
+			var d struct{ ID, Version int64 }
+			err := json.Unmarshal(rows[0], &d)
+			rows = rows[1:]
+			return entry{id: d.ID, version: d.Version}, true, err
+		}
+		return next, func() {}, nil
 	}
 }
 
