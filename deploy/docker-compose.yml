@@ -68,6 +68,13 @@ services:
     depends_on: {elasticsearch: {condition: service_healthy}}
     ports: ["8080:8080"]
 
+  # Chaos proxy in front of Elasticsearch for the indexer (INDEXER_ES_URL=http://gaos:9200).
+  gaos:
+    build: ./gaos
+    profiles: [chaos]
+    command: [run, -s, /scenario.json]
+    volumes: [./gaos/scenario.json:/scenario.json:ro]
+
   # docker compose run --rm loadgen -rate 1000   (and reconcile the same way)
   loadgen:
     <<: *app

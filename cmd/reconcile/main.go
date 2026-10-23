@@ -11,29 +11,37 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 
 	"github.com/chipontix/pg-search-sync/internal/app"
+	"github.com/chipontix/pg-search-sync/internal/catalog"
 	"github.com/chipontix/pg-search-sync/internal/es"
 )
 
 type report struct {
-	Rows    int64   `json:"pg_rows"`
+	Rows    int64   `json:"source_rows"`
 	Docs    int64   `json:"es_live_docs"`
 	Missing int64   `json:"missing"` // in PG, absent or tombstoned in ES
 	Stale   int64   `json:"stale"`   // ES holds an older version
 	Extra   int64   `json:"extra"`   // live in ES, deleted in PG
 	Ahead   int64   `json:"ahead"`   // ES newer than PG: should never happen
 	Samples []int64 `json:"sample_ids,omitempty"`
-	Elapsed string  `json:"elapsed"`
+	// Repaired counts rows touched and tombstones written by -repair.
+	Repaired int `json:"repaired,omitempty"`
+
+	touch      []int64           // missing or stale: re-emit from the source
+	tombstones []catalog.Product // extra: live in ES, gone from the source
+	Elapsed    string            `json:"elapsed"`
 }
 
 func (r report) ok() bool { return r.Missing+r.Stale+r.Extra+r.Ahead == 0 }
 
 func main() {
 	wait := flag.Duration("wait", 2*time.Minute, "keep re-checking until consistent or this long")
+	repair := flag.Bool("repair", false, "if still inconsistent after -wait, re-emit the affected rows and check again")
 	flag.Parse()
 	ctx := context.Background()
 
@@ -41,25 +49,58 @@ func main() {
 	if err != nil {
 		app.Fatal("postgres", "error", err)
 	}
+	scan := postgresScan(conn)
 	client := es.New(app.Env("ES_URL", "http://localhost:9200"))
 	index := app.Env("ES_INDEX", "products")
 
-	deadline := time.Now().Add(*wait)
+	r := converge(ctx, scan, client, index, *wait)
+	if !r.ok() && *repair {
+		n, err := repairAll(ctx, conn, client, index, r)
+		if err != nil {
+			app.Fatal("repair", "error", err)
+		}
+		slog.Warn("repaired", "rows_touched", len(r.touch), "tombstones", len(r.tombstones))
+		time.Sleep(3 * time.Second) // let CDC and the indexer carry the touched rows
+		r = converge(ctx, scan, client, index, *wait)
+		r.Repaired = n
+	}
+	_ = json.NewEncoder(os.Stdout).Encode(r)
+	if !r.ok() {
+		os.Exit(1)
+	}
+}
+
+// converge re-runs compare until both sides agree or wait expires.
+func converge(ctx context.Context, scan sourceScan, client *es.Client, index string, wait time.Duration) report {
+	deadline := time.Now().Add(wait)
 	for {
-		r, err := compare(ctx, conn, client, index)
+		r, err := compare(ctx, scan, client, index)
 		if err != nil {
 			app.Fatal("compare", "error", err)
 		}
 		if r.ok() || time.Now().After(deadline) {
-			_ = json.NewEncoder(os.Stdout).Encode(r)
-			if !r.ok() {
-				os.Exit(1)
-			}
-			return
+			return r
 		}
 		slog.Info("not converged yet", "missing", r.Missing, "stale", r.Stale, "extra", r.Extra)
 		time.Sleep(2 * time.Second)
 	}
+}
+
+// repairAll is the backstop for a document the pipeline lost: touching the
+// row bumps its version (trigger), so CDC emits it again; a document whose
+// row is gone gets a tombstone one version above what ES holds.
+func repairAll(ctx context.Context, conn *pgx.Conn, client *es.Client, index string, r report) (int, error) {
+	for ids := range slices.Chunk(r.touch, 1000) {
+		if _, err := conn.Exec(ctx, "UPDATE products SET updated_at = now() WHERE id = ANY($1)", ids); err != nil {
+			return 0, err
+		}
+	}
+	for docs := range slices.Chunk(r.tombstones, 1000) {
+		if _, err := client.BulkIndex(ctx, index, docs); err != nil {
+			return 0, err
+		}
+	}
+	return len(r.touch) + len(r.tombstones), nil
 }
 
 type entry struct {
@@ -67,29 +108,49 @@ type entry struct {
 	deleted     bool
 }
 
+// sourceScan starts one pass over the source ordered by id and returns its
+// iterator and a cleanup func.
+type sourceScan func(ctx context.Context) (next func() (entry, bool, error), done func(), err error)
+
+func postgresScan(conn *pgx.Conn) sourceScan {
+	return func(ctx context.Context) (func() (entry, bool, error), func(), error) {
+		// REPEATABLE READ gives one consistent snapshot of the source for the scan.
+		tx, err := conn.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
+		if err != nil {
+			return nil, nil, err
+		}
+		rows, err := tx.Query(ctx, "SELECT id, version FROM products ORDER BY id")
+		if err != nil {
+			_ = tx.Rollback(ctx)
+			return nil, nil, err
+		}
+		next := func() (entry, bool, error) {
+			if !rows.Next() {
+				return entry{}, false, rows.Err()
+			}
+			var e entry
+			err := rows.Scan(&e.id, &e.version)
+			return e, true, err
+		}
+		return next, func() { rows.Close(); _ = tx.Rollback(ctx) }, nil
+	}
+}
+
 // compare merge-joins both sides ordered by id.
-func compare(ctx context.Context, conn *pgx.Conn, client *es.Client, index string) (report, error) {
+func compare(ctx context.Context, scan sourceScan, client *es.Client, index string) (report, error) {
 	start := time.Now()
 	var r report
-	// REPEATABLE READ gives one consistent snapshot of the source for the scan.
-	tx, err := conn.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
+	nextSrc, done, err := scan(ctx)
 	if err != nil {
 		return r, err
 	}
-	defer tx.Rollback(ctx)
-	rows, err := tx.Query(ctx, "SELECT id, version FROM products ORDER BY id")
-	if err != nil {
-		return r, err
-	}
-	defer rows.Close()
+	defer done()
 	nextPG := func() (entry, bool, error) {
-		if !rows.Next() {
-			return entry{}, false, rows.Err()
+		e, ok, err := nextSrc()
+		if ok {
+			r.Rows++
 		}
-		var e entry
-		err := rows.Scan(&e.id, &e.version)
-		r.Rows++
-		return e, true, err
+		return e, ok, err
 	}
 
 	docs := &esScan{client: client, index: index}
@@ -113,6 +174,7 @@ func compare(ctx context.Context, conn *pgx.Conn, client *es.Client, index strin
 			if !d.deleted {
 				r.Docs++
 				r.Extra++
+				r.tombstones = append(r.tombstones, catalog.Product{ID: d.id, Version: d.version + 1, Deleted: true})
 				sample(d.id)
 			}
 			if d, dok, err = docs.next(ctx); err != nil {
@@ -120,6 +182,7 @@ func compare(ctx context.Context, conn *pgx.Conn, client *es.Client, index strin
 			}
 		case pok && (!dok || p.id < d.id): // only in PG
 			r.Missing++
+			r.touch = append(r.touch, p.id)
 			sample(p.id)
 			if p, pok, err = nextPG(); err != nil {
 				return r, err
@@ -131,9 +194,11 @@ func compare(ctx context.Context, conn *pgx.Conn, client *es.Client, index strin
 			switch {
 			case d.deleted: // live in PG, tombstone in ES
 				r.Missing++
+				r.touch = append(r.touch, p.id)
 				sample(p.id)
 			case d.version < p.version:
 				r.Stale++
+				r.touch = append(r.touch, p.id)
 				sample(p.id)
 			case d.version > p.version:
 				r.Ahead++
