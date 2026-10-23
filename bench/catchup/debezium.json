@@ -1,0 +1,24 @@
+{
+  "name": "products",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "plugin.name": "pgoutput",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "app",
+    "database.password": "app",
+    "database.dbname": "catalog",
+    "topic.prefix": "pg",
+    "table.include.list": "public.products",
+    "slot.name": "debezium",
+    "publication.name": "dbz_publication",
+    "publication.autocreate.mode": "filtered",
+    "snapshot.mode": "no_data",
+    "max.batch.size": "10000",
+    "max.queue.size": "40000",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false"
+  }
+}

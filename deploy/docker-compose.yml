@@ -68,6 +68,21 @@ services:
     depends_on: {elasticsearch: {condition: service_healthy}}
     ports: ["8080:8080"]
 
+  # docker compose run --rm loadgen -rate 1000   (and reconcile the same way)
+  loadgen:
+    <<: *app
+    profiles: [tools]
+    restart: "no"
+    entrypoint: [loadgen]
+    environment:
+      <<: *app-env
+      INDEXER_METRICS: http://indexer:8091/metrics
+  reconcile:
+    <<: *app
+    profiles: [tools]
+    restart: "no"
+    entrypoint: [reconcile]
+
   prometheus:
     image: prom/prometheus:v3.5.0
     volumes: [./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro]

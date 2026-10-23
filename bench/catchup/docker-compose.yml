@@ -1,0 +1,49 @@
+# Catch-up benchmark: the connector under test is stopped while N rows are
+# written, then started; we time how long it takes to put all N change events
+# into Kafka. Both connectors get the same CPU and memory limits.
+name: catchup
+
+x-limits: &limits
+  deploy:
+    resources:
+      limits: {cpus: "${CPUS:-1}", memory: "${MEM:-1g}"}
+
+services:
+  postgres:
+    image: postgres:17
+    command: [postgres, -c, wal_level=logical, -c, max_wal_senders=10, -c, max_replication_slots=10,
+              -c, shared_buffers=1GB, -c, max_slot_wal_keep_size=40GB, -c, max_wal_size=8GB]
+    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: catalog}
+    volumes: [../../deploy/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro]
+    healthcheck: {test: [CMD, pg_isready, -U, app, -d, catalog], interval: 2s, retries: 30}
+
+  redpanda:
+    image: redpandadata/redpanda:v25.2.1
+    command: [redpanda, start, --mode, dev-container, --smp, "2", --memory, 3G,
+              --kafka-addr, "internal://0.0.0.0:9092", --advertise-kafka-addr, "internal://redpanda:9092"]
+    healthcheck: {test: [CMD-SHELL, "rpk cluster health | grep -q 'Healthy:.*true'"], interval: 2s, retries: 30}
+
+  gopqcdc:
+    image: pg-search-sync:local
+    command: [cdc]
+    environment:
+      PG_HOST: postgres
+      KAFKA_BROKERS: redpanda:9092
+      PRODUCER_BATCH_SIZE: "10000"
+      PRODUCER_BATCH_TICK: 100ms
+    <<: *limits
+
+  debezium:
+    image: quay.io/debezium/connect:3.2
+    environment:
+      BOOTSTRAP_SERVERS: redpanda:9092
+      GROUP_ID: "1"
+      CONFIG_STORAGE_TOPIC: connect_configs
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      STATUS_STORAGE_TOPIC: connect_statuses
+      HEAP_OPTS: -Xms256m -Xmx640m
+      CONNECT_PRODUCER_LINGER_MS: "100"
+      CONNECT_PRODUCER_BATCH_SIZE: "1048576"
+      CONNECT_PRODUCER_COMPRESSION_TYPE: lz4
+      CONNECT_PRODUCER_ACKS: all
+    <<: *limits

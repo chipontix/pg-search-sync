@@ -43,6 +43,14 @@ type result struct {
 	MaxMs        float64 `json:"max_ms"`
 	DurationS    float64 `json:"duration_s"`
 	PollMs       int64   `json:"poll_interval_ms"`
+	// How long the probe _search itself took; a found doc's latency can be
+	// overstated by up to one poll interval plus this.
+	ProbeP99ms float64 `json:"probe_p99_ms"`
+	ProbeMaxms float64 `json:"probe_max_ms"`
+	// From the indexer's histogram over the same window: WAL message → bulk
+	// acknowledged, i.e. everything except the Elasticsearch refresh wait.
+	PipelineP50ms float64 `json:"pipeline_p50_ms,omitempty"`
+	PipelineP99ms float64 `json:"pipeline_p99_ms,omitempty"`
 }
 
 func main() {
@@ -54,6 +62,7 @@ func main() {
 	updates := flag.Float64("updates", 0.8, "share of writes that update an existing row")
 	poll := flag.Duration("poll", 20*time.Millisecond, "search poll interval")
 	seed := flag.Int("seed", 0, "insert this many rows with COPY and exit")
+	lagURL := flag.String("lag-metrics", app.Env("INDEXER_METRICS", ""), "indexer /metrics URL for the pipeline-only lag split")
 	flag.Parse()
 
 	ctx := context.Background()
@@ -84,6 +93,7 @@ func main() {
 		mu       sync.Mutex
 		pending  = map[int64]probe{}
 		lat      []time.Duration
+		probes   []time.Duration
 		writes   atomic.Int64
 		writeErr atomic.Int64
 		sampling atomic.Bool
@@ -174,8 +184,12 @@ func main() {
 				continue
 			}
 			q := fmt.Sprintf(`{"size":%d,"query":{"terms":{"id":[%s]}},"_source":["id","version"]}`, len(ids), strings.Join(ids, ","))
+			sent := time.Now()
 			resp, err := client.Search(ctx, index, []byte(q))
 			seen := time.Now() // upper bound: the doc became visible before this
+			mu.Lock()
+			probes = append(probes, seen.Sub(sent))
+			mu.Unlock()
 			if err != nil {
 				slog.Warn("probe search", "error", err)
 				continue
@@ -196,6 +210,7 @@ func main() {
 	}()
 
 	time.Sleep(*warmup)
+	before := scrapeLag(*lagURL)
 	writes.Store(0)
 	sampling.Store(true)
 	measured := time.Now()
@@ -216,10 +231,12 @@ func main() {
 	}
 	close(stopProbe)
 	<-probeDone
+	after := scrapeLag(*lagURL)
 
 	mu.Lock()
 	defer mu.Unlock()
 	slices.Sort(lat)
+	slices.Sort(probes)
 	r := result{
 		TargetRate:   *rate,
 		AchievedRate: float64(writes.Load()) / elapsed.Seconds(),
@@ -233,6 +250,12 @@ func main() {
 		MaxMs:        pct(lat, 1),
 		DurationS:    elapsed.Seconds(),
 		PollMs:       poll.Milliseconds(),
+		ProbeP99ms:   pct(probes, 0.99),
+		ProbeMaxms:   pct(probes, 1),
+	}
+	if before != nil && after != nil {
+		r.PipelineP50ms = histQuantile(before, after, 0.50) * 1000
+		r.PipelineP99ms = histQuantile(before, after, 0.99) * 1000
 	}
 	_ = json.NewEncoder(os.Stdout).Encode(r)
 }
