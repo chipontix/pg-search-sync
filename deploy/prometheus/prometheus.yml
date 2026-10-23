@@ -1,0 +1,6 @@
+global: {scrape_interval: 5s}
+scrape_configs:
+  - job_name: cdc
+    static_configs: [{targets: ["cdc:2112"]}]
+  - job_name: indexer
+    static_configs: [{targets: ["indexer:8091"]}]

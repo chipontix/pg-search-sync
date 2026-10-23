@@ -1,0 +1,78 @@
+name: pg-search-sync
+
+x-app: &app
+  build: ..
+  image: pg-search-sync:local
+  restart: unless-stopped
+  environment: &app-env
+    PG_HOST: postgres
+    PG_DSN: postgres://app:app@postgres:5432/catalog
+    KAFKA_BROKERS: redpanda:9092
+    ES_URL: http://elasticsearch:9200
+
+services:
+  postgres:
+    image: postgres:17
+    command: [postgres, -c, wal_level=logical, -c, max_wal_senders=10, -c, max_replication_slots=10,
+              -c, shared_buffers=1GB, -c, max_connections=300, -c, max_slot_wal_keep_size=20GB]
+    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: catalog}
+    volumes: [./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro]
+    ports: ["5432:5432"]
+    healthcheck: {test: [CMD, pg_isready, -U, app, -d, catalog], interval: 2s, retries: 30}
+
+  redpanda:
+    image: redpandadata/redpanda:v25.2.1
+    command: [redpanda, start, --mode, dev-container, --smp, "2", --memory, 2G,
+              --kafka-addr, "internal://0.0.0.0:9092,external://0.0.0.0:19092",
+              --advertise-kafka-addr, "internal://redpanda:9092,external://localhost:19092"]
+    ports: ["19092:19092", "9644:9644"]
+    healthcheck: {test: [CMD-SHELL, "rpk cluster health | grep -q 'Healthy:.*true'"], interval: 2s, retries: 30}
+
+  topics:
+    image: redpandadata/redpanda:v25.2.1
+    depends_on: {redpanda: {condition: service_healthy}}
+    entrypoint: [sh, -c]
+    command:
+      - >-
+        rpk -X brokers=redpanda:9092 topic create products.cdc -p 6 -r 1 || true
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.4
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms2g -Xmx2g
+    ports: ["9200:9200"]
+    healthcheck: {test: [CMD-SHELL, "curl -fs localhost:9200/_cluster/health?wait_for_status=yellow"], interval: 3s, retries: 60}
+
+  cdc:
+    <<: *app
+    command: [cdc]
+    depends_on: {postgres: {condition: service_healthy}, topics: {condition: service_completed_successfully}}
+    ports: ["2112:2112"]
+
+  indexer:
+    <<: *app
+    command: [indexer]
+    environment:
+      <<: *app-env
+      ES_URL: ${INDEXER_ES_URL:-http://elasticsearch:9200}
+    depends_on: {elasticsearch: {condition: service_healthy}, topics: {condition: service_completed_successfully}}
+    ports: ["8091:8091"]
+
+  api:
+    <<: *app
+    command: [api]
+    depends_on: {elasticsearch: {condition: service_healthy}}
+    ports: ["8080:8080"]
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    volumes: [./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro]
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    environment: {GF_AUTH_ANONYMOUS_ENABLED: "true", GF_AUTH_ANONYMOUS_ORG_ROLE: Admin}
+    volumes: [./grafana:/etc/grafana/provisioning:ro]
+    ports: ["3000:3000"]
