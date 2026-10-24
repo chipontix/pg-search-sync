@@ -1,5 +1,7 @@
 # pg-search-sync
 
+[![ci](https://github.com/chipontix/pg-search-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/chipontix/pg-search-sync/actions/workflows/ci.yml)
+
 Product catalog sync **PostgreSQL → Kafka → Elasticsearch** built on Trendyol's
 open-source Go libraries, with measured write→searchable latency, a 10M-row
 catch-up benchmark against Debezium under equal resource limits, and a failure
