@@ -3,6 +3,8 @@ module github.com/chipontix/pg-search-sync
 go 1.26.6
 
 require (
+	github.com/Trendyol/go-dcp v1.3.7
+	github.com/Trendyol/go-dcp-elasticsearch v1.3.8
 	github.com/Trendyol/go-pq-cdc v1.11.14
 	github.com/Trendyol/go-pq-cdc-kafka v1.4.5
 	github.com/Trendyol/kafka-konsumer/v2 v2.6.19
@@ -21,8 +23,6 @@ require (
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/Trendyol/go-dcp v1.3.7 // indirect
-	github.com/Trendyol/go-dcp-elasticsearch v1.3.8 // indirect
 	github.com/Trendyol/kafka-cronsumer v1.8.11 // indirect
 	github.com/Trendyol/otel-kafka-konsumer v1.0.0 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
@@ -58,7 +58,6 @@ require (
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-playground/errors v3.3.0+incompatible // indirect
-	github.com/gofiber/adaptor/v2 v2.2.1 // indirect
 	github.com/gofiber/fiber/v2 v2.52.12 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
@@ -109,7 +108,6 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.69.0 // indirect
-	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect

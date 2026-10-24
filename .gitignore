@@ -1,3 +1,6 @@
 bin/
 bench/results/*.tmp
 deploy/gaos/scenario.json
+e2e/build/
+e2e/.gradle/
+e2e/.kotlin/

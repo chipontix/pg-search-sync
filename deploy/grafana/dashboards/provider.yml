@@ -1,0 +1,3 @@
+apiVersion: 1
+providers:
+  - {name: pg-search-sync, type: file, options: {path: /etc/grafana/provisioning/dashboards}}

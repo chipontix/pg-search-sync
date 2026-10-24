@@ -26,7 +26,7 @@ func main() {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
-		w.WriteHeader(http.StatusNoContent)
+		_, _ = w.Write([]byte("ready\n"))
 	})
 	mux.Handle("/", pipeline.SearchHandler())
 
