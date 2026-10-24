@@ -1,0 +1,4 @@
+{"service": {"s": {"port": 19555, "path": {"/x": {"scenario": "r", "method": "POST"}}}},
+ "scenario": {"r": {"name": "r", "rate": 1,
+   "accept": {"status": 200, "result": {"type": "static", "content": {"ok": true}}},
+   "ignore": {"status": 429, "result": {"type": "static", "content": {"ok": false}}}}}}

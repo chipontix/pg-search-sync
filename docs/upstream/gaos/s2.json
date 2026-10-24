@@ -1,0 +1,8 @@
+{"service": {"s": {"port": 19557, "path": {
+   "/proxy": {"scenario": "p", "method": "GET"},
+   "/span": {"scenario": "endonly", "method": "GET"}}}},
+ "scenario": {
+   "p": {"name": "p", "accept": {"result": {"type": "redirect", "content": {"host": "http://127.0.0.1:19556"}}}},
+   "endonly": {"name": "end only, already past", "end": "2020-01-01T00:00:00.000000Z",
+     "accept": {"status": 200, "result": {"type": "static", "content": {"in": "span"}}},
+     "ignore": {"status": 503, "result": {"type": "static", "content": {"in": "outside"}}}}}}
