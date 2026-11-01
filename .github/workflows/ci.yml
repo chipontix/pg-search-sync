@@ -13,6 +13,7 @@ jobs:
       - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./... && go vet -tags integration ./...
       - run: go test -race ./...
+      - run: python3 bench/tables.py --check
 
   integration:
     runs-on: ubuntu-latest

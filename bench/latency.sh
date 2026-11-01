@@ -21,4 +21,4 @@ for rate in 1000 5000 10000; do
     echo "{\"run\":$run,\"host_load\":\"$load\",\"at\":\"$(date -u +%FT%TZ)\",${out#\{}" | tee -a bench/results/latency.jsonl
   done
 done
-dc run --rm reconcile -wait 5m
+dc run --rm -T reconcile -wait 5m | tee -a bench/results/latency.jsonl

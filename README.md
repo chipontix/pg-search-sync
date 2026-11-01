@@ -81,6 +81,11 @@ Hardware: MacBook Pro, Apple M4 Max, 48 GB; everything in one colima VM with
 10 vCPU / 20 GB, shared with unrelated workloads on the host (each result line
 records the host load average). Raw results: [`bench/results`](bench/results).
 
+The tables and the line under each are generated from `bench/results/*.jsonl`
+by `make tables` ([`bench/tables.py`](bench/tables.py)); CI fails if they are
+out of date. Numbers marked *(observed)* were read off a console or the
+dashboard during the runs and are not in `bench/results`.
+
 ### Write → searchable latency
 
 [`bench/latency.sh`](bench/latency.sh): 1M-row table, 256 connections, 80%
@@ -91,25 +96,30 @@ in ten is probed: the clock starts when `COMMIT` returns and stops when a
 that version or newer. `_search` only sees refreshed segments, so this is "a
 user can find it", not a real-time `GET`.
 
+<!-- generated:latency -->
 | target writes/s | achieved | p50 | p90 | p99 (3 runs) | max | probes, not found |
 |---|---|---|---|---|---|---|
 | 1,000 | 968–1,000 | 603 ms | 1,000 ms | 1,092–1,112 ms | 3.2 s | 17,772, 0 |
 | 5,000 | 4,467–4,810 | 649 ms | 1,053 ms | 1,158–1,182 ms | 4.5 s | 84,224, 0 |
 | 10,000 | 8,366–8,973 | 736 ms | 1,170 ms | 1,289–1,395 ms | 4.8 s | 158,091, 0 |
 
-p50/p90 are medians of the three runs. After the series reconcile reported 0
-mismatches on 2,308,150 rows.
+p50/p90 are medians of the runs. Pipeline part (WAL message → bulk acknowledged, indexer histogram): p50 54–79 ms (median per rate), p99 0.1–2.2 s across runs.
+<!-- /generated -->
 
-- **The floor is `refresh_interval: 1s`.** The pipeline part (WAL message →
-  bulk acknowledged, from the indexer's histogram) has a p50 of 54–79 ms;
-  the rest is waiting for the next refresh, uniformly 0–1 s.
+After the series reconcile reported 0 mismatches on 2,308,150 rows
+*(observed; `latency.sh` now appends that reconcile line to
+`latency.jsonl`)*.
+
+- **The floor is `refresh_interval: 1s`.** The pipeline part (line under the
+  table) is tens of milliseconds; the rest is waiting for the next refresh,
+  uniformly 0–1 s.
 - **The targets above 1,000/s are not reached** because commits stall on the
-  VM's virtual disk: `/proc/pressure/io` showed `full avg10 ≈ 7–8 %`, i.e.
-  every task blocked on IO 7–8 % of the time. The same stalls produce the
+  VM's virtual disk: `/proc/pressure/io` showed `full avg10 ≈ 7–8 %` *(observed)*,
+  i.e. every task blocked on IO 7–8 % of the time. The same stalls produce the
   3–5 s maxima. A first series with 64 connections reached even less and is
   kept as recorded (`latency-64-workers.jsonl`).
-- The pipeline-only p99 from the histogram varied between 0.1 and 2.2 s
-  across runs and is sometimes above the end-to-end p99. The two do not count
+- The pipeline-only p99 from the histogram varies widely across runs and is
+  sometimes above the end-to-end p99. The two do not count
   the same population (every change vs a 1-in-10 sample, clocks starting at
   WAL send vs COMMIT return) and I have not reconciled them, so it is not a
   headline number.
@@ -122,15 +132,18 @@ connector is started and timed until all 10M change events are in Kafka. CPU
 and memory come from the container's cgroup (`cpu.stat`, `memory.stat`
 anon ≈ RSS, `memory.peak`). **Both connectors get the same limits.**
 
-| limits | connector | time (3 runs) | rows/s (median) | CPU-seconds | peak anon memory |
+<!-- generated:catchup -->
+| limits | connector | time | rows/s (median) | CPU-seconds | peak anon memory |
 |---|---|---|---|---|---|
-| 1 CPU, 1 GB | go-pq-cdc-kafka v1.4.5 | 52.4 / 56.1 / 57.8 s | 178k | 51–56 | 68–75 MB |
-| 1 CPU, 1 GB | Debezium 3.2 (Kafka Connect) | 178.1 / 199.9 / 204.0 s | 50k | 178–204 | 825–832 MB |
+| 1 CPU, 1 GB | go-pq-cdc-kafka v1.4.5 | 52.4 / 56.1 / 57.8 s (3 runs) | 178k | 51–56 | 68–75 MB |
+| 1 CPU, 1 GB | Debezium 3.2 (Kafka Connect) | 178.1 / 199.9 / 204.0 s (3 runs) | 50k | 178–204 | 825–832 MB |
 | 2 CPU, 1 GB | go-pq-cdc-kafka v1.4.5 | 36.2 s (1 run) | 276k | 61 | 65 MB |
-| 2 CPU, 1 GB | Debezium 3.2 | 87.4 s (1 run) | 114k | 163 | 848 MB |
+| 2 CPU, 1 GB | Debezium 3.2 (Kafka Connect) | 87.4 s (1 run) | 114k | 163 | 848 MB |
 
-At 1 CPU that is 3.6× faster with 3.6× less CPU and ~11× less memory; at
-2 CPUs 2.4× faster. Both are tuned for throughput (go-pq-cdc-kafka batch
+At 1 CPU go-pq-cdc-kafka is 3.6× faster with 3.7× less CPU and 11.2× less memory; at 2 CPUs 2.4× faster (ratios of medians).
+<!-- /generated -->
+
+Both are tuned for throughput (go-pq-cdc-kafka batch
 10,000 / 100 ms; Debezium `max.batch.size` 10,000, `max.queue.size` 40,000,
 producer `linger.ms` 100, 1 MB batches, lz4, heap 640 MB). Debezium writes
 its full JSON envelope (before/after/source), go-pq-cdc-kafka this project's
@@ -146,8 +159,9 @@ limited to 1 CPU and Debezium to 2 CPUs.
 
 [`bench/chaos.sh`](bench/chaos.sh): 2,000 writes/s for 120 s per scenario, one
 fault injected 20 s in, then `reconcile` must report **zero missing, stale or
-extra documents** against PostgreSQL. 2.4–2.95M rows at the time of the checks.
+extra documents** against PostgreSQL.
 
+<!-- generated:chaos -->
 | scenario | through retry topic | DLQ | missing / stale / extra | converged in |
 |---|---|---|---|---|
 | kill -9 indexer, back after 10 s | 0 | 0 | 0 / 0 / 0 | 21 s |
@@ -160,8 +174,11 @@ extra documents** against PostgreSQL. 2.4–2.95M rows at the time of the checks
 | … plus kill -9 indexer inside the window | 4,136 | 0 | 0 / 0 / 0 | 57 s |
 | … plus kill -9 while cronsumer drains (3 runs) | 4,020–4,143 | 0 | 0 / 0 / 0 | 59–62 s |
 
+2.38–2.95M rows at the time of the checks; one full reconcile pass took 21–29 s.
+<!-- /generated -->
+
 "Converged in" is measured after the load stops and includes one full
-reconcile pass (~25 s at this size). `-repair` was never needed in these runs.
+reconcile pass (time above). `-repair` was never needed in these runs.
 
 ### Optional second path: Couchbase → go-dcp-elasticsearch
 
@@ -169,15 +186,19 @@ reconcile pass (~25 s at this size). `-repair` was never needed in these runs.
 100k seeded documents, writes through N1QL, 3 × 60 s, DCP lag from go-dcp's
 `cbgo_total_lag_current` sampled every second.
 
+<!-- generated:couchbase -->
 | target | achieved | p50 | p99 | DCP lag mean / max (mutations) |
 |---|---|---|---|---|
 | 1,000 | 1,000 | 4.3–4.8 s | 9.7–10.9 s | 4.4k–5.0k / 9.7k–10.4k |
 | 5,000 | 817–1,550 | 3.5–6.7 s | 9.4–13.0 s | 2.4k–7.5k / 17.5k–25.1k |
 
-Reconcile afterwards: 224,522 documents, 0 mismatches. N1QL writes top out at
-~1.5k/s on this VM, so the second row is not a 5,000/s test. Idle, a single
-write reaches a real-time `GET` in ~490 ms every time. Under load the bulk
-requests take ~17 ms while `cbgo_dcp_latency_ms` is in seconds, so the delay
+Reconcile afterwards: 224,522 documents, 0 mismatches. Highest achieved N1QL write rate: 1,550/s.
+<!-- /generated -->
+
+N1QL writes top out at
+the highest achieved rate above on this VM, so the second row is not a
+5,000/s test. Idle, a single write reaches a real-time `GET` in ~490 ms every
+time *(observed)*. Under load the bulk requests take ~17 ms *(observed)* while `cbgo_dcp_latency_ms` is in seconds, so the delay
 is before the connector's listener; I have not isolated where.
 
 ## Observability
@@ -225,12 +246,30 @@ dropped by `redirect`, `span` ignoring `end`), each with a script.
 For the cronsumer one there is a fix with a regression test on
 [`chipontix/kafka-cronsumer` `fix/commit-after-handled`](https://github.com/chipontix/kafka-cronsumer/tree/fix/commit-after-handled);
 the issue and PR text, the library's contribution rules and how to check it
-are in [UPSTREAM-PR.md](UPSTREAM-PR.md). Not filed upstream yet.
+are in [UPSTREAM-PR.md](UPSTREAM-PR.md). Not filed upstream yet. Against a real broker
+(Kafka 3.9.1, 1500 ms handler, five SIGKILLs) v1.8.11 lost 10 of 20 records
+and the fork lost 0 of 20, with 4 duplicates (24 handler calls for 20
+records): the fix makes the retry path at-least-once, not exactly-once, so the
+handler still has to be idempotent (here, `version_type=external` makes it so).
+Raw output: [`bench/results/cronsumer-crash/`](bench/results/cronsumer-crash/).
 
 ## How it was built
 
 The code, tests, benchmarks and documentation in this repository were written
 by an AI coding agent, Claude Code (Anthropic), to Rabiya's specification and
-under her direction: she set the goals, the constraints and what had to be
-measured, and reviewed the results. The same goes for the upstream fix and its
-tests. The commits are under her GitHub account.
+under her direction. She set the goals, the constraints and what had to be
+measured, and she decides what is accepted and published. The upstream
+kafka-cronsumer fix and its tests were made the same way, and the issue and PR
+texts in [UPSTREAM-PR.md](UPSTREAM-PR.md) say so. The commits are under her
+GitHub account.
+
+How the claims are kept checkable rather than taken on trust:
+
+- every benchmark script appends its raw result to `bench/results/`, and the
+  README tables are generated from those files (`make tables`, checked in CI);
+- the few numbers that were only observed are marked *(observed)*;
+- "no lost documents" is decided by `reconcile`, an independent comparison of
+  PostgreSQL with the index, not by the pipeline's own logs;
+- the upstream bug has a regression test that fails on the library's `main`
+  and a SIGKILL reproduction against a real broker, both runnable from this
+  repository.

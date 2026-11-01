@@ -1,7 +1,7 @@
 # Everything runs in Docker except the Go and Gradle builds of the tests.
 COMPOSE = docker compose -f deploy/docker-compose.yml
 
-.PHONY: up down demo test it e2e latency catchup chaos couchbase reproduce
+.PHONY: up down demo test it e2e latency catchup chaos couchbase reproduce tables
 
 up:            ## PostgreSQL, Redpanda, Elasticsearch, cdc, indexer, api, Prometheus, Grafana
 	$(COMPOSE) up -d --build --wait postgres redpanda elasticsearch cdc indexer api prometheus grafana
@@ -39,4 +39,7 @@ couchbase:     ## optional second path: Couchbase → go-dcp-elasticsearch
 	$(COMPOSE) stop cdc indexer api
 	bench/couchbase.sh 3 60s
 
-reproduce: test it latency chaos catchup   ## every number in the README (about 2 hours)
+tables:        ## rebuild the README result tables from bench/results
+	python3 bench/tables.py
+
+reproduce: test it latency chaos catchup tables   ## every number in the README (about 2 hours)
