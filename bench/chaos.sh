@@ -8,7 +8,8 @@ cd "$(dirname "$0")/.."
 RATE=${RATE:-2000}
 LOAD=${LOAD:-120}       # seconds of writes per scenario
 FAULT_AT=${FAULT_AT:-20}
-dc() { docker compose -f deploy/docker-compose.yml --profile chaos "$@"; }
+# COMPOSE_EXTRA: an extra compose file layered on top (e.g. other host ports).
+dc() { docker compose -f deploy/docker-compose.yml ${COMPOSE_EXTRA:+-f "$COMPOSE_EXTRA"} --profile chaos "$@"; }
 hwm() { dc exec -T redpanda rpk topic describe "$1" -p | awk 'NR>1{s+=$6} END{print s+0}'; }
 
 # gaos scenario: 429 for every _bulk between $1 and $2 (UTC), proxy otherwise.
