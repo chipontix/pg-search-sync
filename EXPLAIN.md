@@ -61,6 +61,9 @@ PostgreSQL ──(слот логической репликации)──► c
   работы на партицию). Обработчик всё равно обязан быть идемпотентным, у нас
   это обеспечивает `version_type=external`
   (`docs/upstream/cronsumer-crash/compare.sh`, логи в `bench/results/cronsumer-crash/`).
+  Фикс проверен только этим SIGKILL-repro. Полную матрицу отказов на ветке
+  `cronsumer-commit-after-handled` не прогоняли: на общем стенде не хватило
+  места на диске под весь стек.
 - **gaos (прокси для инъекции отказов) с `-race`** дал 7–8 data race на 400
   запросов. Ещё у него `redirect` теряет query string, а `span` без `start`
   игнорирует `end`. Скрипт: `docs/upstream/gaos/repro.sh`. На наши прогоны это

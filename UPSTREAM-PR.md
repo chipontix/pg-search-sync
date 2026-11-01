@@ -206,6 +206,9 @@ The indexer uses cronsumer through kafka-konsumer for `products.retry`. In the
 failure matrix nothing was lost, because `reconcile -repair` is the backstop and
 retries only carry documents that already failed for 30 s. With the fix, a kill
 while cronsumer drains should cause redelivery, not loss. The SIGKILL
-reproduction shows it (0 lost instead of 10 of 20). The full failure matrix
-(`make chaos`) has not been re-run on that branch: it needs the whole stack,
-and the shared VM is overloaded. `go test -race ./...` passes on that branch.
+reproduction shows it (0 lost instead of 10 of 20), and that reproduction is
+the only check of the fix against a broker. The full failure matrix
+(`make chaos`) has not been run on that branch because of the test machine's
+resources: the VM is shared with other workloads, and on 2026-11-01 the host
+did not have the disk space for the whole stack (images, build and
+Elasticsearch data). `go test -race ./...` passes on that branch.

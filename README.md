@@ -252,6 +252,10 @@ and the fork lost 0 of 20, with 4 duplicates (24 handler calls for 20
 records): the fix makes the retry path at-least-once, not exactly-once, so the
 handler still has to be idempotent (here, `version_type=external` makes it so).
 Raw output: [`bench/results/cronsumer-crash/`](bench/results/cronsumer-crash/).
+The fix is checked by that SIGKILL reproduction only: the full failure
+matrix has not been run on the `cronsumer-commit-after-handled` branch,
+because the shared test machine did not have the disk space for the whole
+stack at the time.
 
 ## How it was built
 
