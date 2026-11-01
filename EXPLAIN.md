@@ -53,7 +53,9 @@ PostgreSQL ──(слот логической репликации)──► c
   коммитится только после обработки, и никогда дальше первой ещё
   обрабатываемой записи партиции. Регрессионный тест на `main` падает
   (`offsets [0 1] committed while the handler of offset 0 is still running`),
-  с фиксом проходит.
+  с фиксом проходит. На живом Kafka 3.9.1 (1 500 мс на запись, 5 SIGKILL) v1.8.11
+  потерял 10 из 20, форк — 0 из 20, 4 записи пришли повторно
+  (`docs/upstream/cronsumer-crash/compare.sh`, логи в `bench/results/cronsumer-crash/`).
 - **gaos (прокси для инъекции отказов) с `-race`** дал 7–8 data race на 400
   запросов. Ещё у него `redirect` теряет query string, а `span` без `start`
   игнорирует `end`. Скрипт: `docs/upstream/gaos/repro.sh`. На наши прогоны это
@@ -78,7 +80,7 @@ README собраны из этих строк. Отдельного скрип�
 | Catch-up 10M | `bench/results/catchup.jsonl` | `make catchup` |
 | Failure matrix | `bench/results/chaos.jsonl`, логи в `bench/results/chaos-logs/` | `make chaos` |
 | Couchbase | `bench/results/couchbase.jsonl` | `make couchbase` |
-| Находка в cronsumer | `docs/upstream.md` | `docs/upstream/cronsumer-crash/run.sh` |
+| Находка в cronsumer | `docs/upstream.md`, `bench/results/cronsumer-crash/*.log` | `docs/upstream/cronsumer-crash/compare.sh` |
 
 Всё сразу: `make reproduce`, около 2 часов. Нужны Docker, Go и JDK 21 для Stove.
 Проверить фикс библиотеки без Docker:
@@ -123,5 +125,5 @@ git checkout fix/commit-after-handled && go test -race ./...                    
    дубли по версии. Сходится за 21 с, при трёх убийствах подряд — за 45 с.
 10. **Что не сделано?** Начального снапшота нет. Tombstone не чистятся. Схема
     фиксированная. reconcile держит одну транзакцию и не масштабируется за
-    несколько миллионов строк. Всё на одной VM ноутбука. Прогон фикса
-    cronsumer на живом брокере и матрицы отказов с ним ещё не сделан.
+    несколько миллионов строк. Всё на одной VM ноутбука. Матрица отказов с
+    фиксом cronsumer ещё не перепрогнана.

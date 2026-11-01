@@ -35,6 +35,11 @@ Related, from reading the code only (not reproduced): in `cronsumer.go`
 `produce`, a failed `ProduceWithRetryOption` to the retry or dead-letter
 topic is logged and the record is dropped, after its offset was committed.
 
+With the fix (fork, `5897aa6`) the 1500 ms run, on a fresh Kafka 3.9.1 and
+with five kills, lost 0 of 20 records and redelivered 4. Main (v1.8.11) on the
+same setup lost 10 of 20 again: [`compare.sh`](upstream/cronsumer-crash/compare.sh),
+[raw output](../bench/results/cronsumer-crash/).
+
 **Status:** fix and regression test on
 [`chipontix/kafka-cronsumer` `fix/commit-after-handled`](https://github.com/chipontix/kafka-cronsumer/tree/fix/commit-after-handled)
 (the test fails on `main`); issue and PR text in

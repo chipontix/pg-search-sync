@@ -1,0 +1,20 @@
+# fork-5897aa6 WORK_MS=1500 N=20 STEP=2 cronsumer=github.com/chipontix/kafka-cronsumer@v0.0.0-20261101065122-5897aa618d87 at=2026-11-01T07:10:13Z
+kill 1 after 2 unique keys processed
+kill 2 after 4 unique keys processed
+kill 3 after 6 unique keys processed
+{"level":"WARN","time":"2026-11-01T10:12:44.226Z","sourceLocation":"internal/cronsumer.go:94","message":"Message from repro.retry could not read with consumer group repro, error read tcp 127.0.0.1:53969->127.0.0.1:19092: i/o timeout"}
+{"level":"WARN","time":"2026-11-01T10:13:14.255Z","sourceLocation":"internal/cronsumer.go:94","message":"Message from repro.retry could not read with consumer group repro, error read tcp 127.0.0.1:54505->127.0.0.1:19092: i/o timeout"}
+{"level":"WARN","time":"2026-11-01T10:14:07.06Z","sourceLocation":"internal/cronsumer.go:94","message":"Message from repro.retry could not read with consumer group repro, error read tcp 127.0.0.1:55175->127.0.0.1:19092: i/o timeout"}
+{"level":"WARN","time":"2026-11-01T10:14:37.074Z","sourceLocation":"internal/cronsumer.go:94","message":"Message from repro.retry could not read with consumer group repro, error read tcp 127.0.0.1:55579->127.0.0.1:19092: i/o timeout"}
+{"level":"WARN","time":"2026-11-01T10:15:04.162Z","sourceLocation":"internal/cronsumer.go:94","message":"Message from repro.retry could not read with consumer group repro, error [15] Group Coordinator Not Available: the broker returns this error code for group coordinator requests, offset commits, and most group management requests if the offsets topic has not yet been created, or if the group coordinator is not active"}
+{"level":"WARN","time":"2026-11-01T10:15:29.94Z","sourceLocation":"internal/cronsumer.go:94","message":"Message from repro.retry could not read with consumer group repro, error read tcp 127.0.0.1:56163->127.0.0.1:19092: i/o timeout"}
+{"level":"WARN","time":"2026-11-01T10:15:53.211Z","sourceLocation":"internal/cronsumer.go:94","message":"Message from repro.retry could not read with consumer group repro, error [15] Group Coordinator Not Available: the broker returns this error code for group coordinator requests, offset commits, and most group management requests if the offsets topic has not yet been created, or if the group coordinator is not active"}
+{"level":"WARN","time":"2026-11-01T10:16:14.957Z","sourceLocation":"internal/cronsumer.go:94","message":"Message from repro.retry could not read with consumer group repro, error [15] Group Coordinator Not Available: the broker returns this error code for group coordinator requests, offset commits, and most group management requests if the offsets topic has not yet been created, or if the group coordinator is not active"}
+{"level":"WARN","time":"2026-11-01T10:16:32.638Z","sourceLocation":"internal/cronsumer.go:94","message":"Message from repro.retry could not read with consumer group repro, error [15] Group Coordinator Not Available: the broker returns this error code for group coordinator requests, offset commits, and most group management requests if the offsets topic has not yet been created, or if the group coordinator is not active"}
+kill 4 after 8 unique keys processed
+kill 5 after 10 unique keys processed
+processed unique: 20 / 20, processed total (with duplicates): 24
+never processed: 
+service "redpanda" is not running
+GROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                                                          HOST            CLIENT-ID
+repro           repro.retry     0          20              20              0               repro@Mac.local (github.com/segmentio/kafka-go)-7f40e72c-54fb-482a-80d1-c8586ebdf911 /172.17.0.1     repro@Mac.local (github.com/segmentio/kafka-go)

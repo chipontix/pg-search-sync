@@ -70,14 +70,29 @@ Checked on 2026-11-01, all issues and PRs, open and closed:
    | 20 ms | 200 | 0 (78 duplicates) |
    | 1500 ms | 20 | **10**, 2 per kill |
 
-   On branch `cronsumer-commit-after-handled` the same script builds against
-   the fork. **Not run yet:** the host had 14 GB of free disk, under the
-   20 GB limit for starting the Docker stack. The command, once there is room:
+   Re-run on 2026-11-01 for both versions with
+   [`compare.sh`](docs/upstream/cronsumer-crash/compare.sh). Each version
+   gets its own fresh single-node `apache/kafka:3.9.1`, then 20 records, a
+   1500 ms handler and five SIGKILLs. Raw output:
+   [`bench/results/cronsumer-crash/`](bench/results/cronsumer-crash/).
+
+   | cronsumer | processed (unique / total) | lost | group offset after drain |
+   |---|---|---|---|
+   | v1.8.11 | 10 / 10 | **10**: k004 k005 k008 k009 k010 k013 k014 k015 k018 k019 | not read (the describe call hung, see below) |
+   | fork `5897aa6` | 20 / 24 | **0** (4 duplicates) | 20 of 20 |
+
+   The VM was shared with other workloads (host load average around 100). In
+   the fork run the broker stalled for about 4 minutes after the third kill:
+   the consumer logged `i/o timeout` and `Group Coordinator Not Available`,
+   then carried on. That costs time and decides nothing about loss: a record
+   counts as processed only when its key is fsynced to the log. In the
+   v1.8.11 run `kafka-consumer-groups --describe` hung on the same stalls
+   and was stopped, so that row has no offset. The earlier run on Redpanda
+   (table above) recorded the committed offset at the end of the topic.
 
    ```bash
-   git checkout cronsumer-commit-after-handled
-   docker compose -f deploy/docker-compose.yml up -d --wait redpanda
-   WORK_MS=1500 N=20 STEP=2 docs/upstream/cronsumer-crash/run.sh
+   git checkout main && docs/upstream/cronsumer-crash/compare.sh v1.8.11 1500 20 2
+   git checkout cronsumer-commit-after-handled && docs/upstream/cronsumer-crash/compare.sh fork 1500 20 2
    ```
 
 ## Issue text
@@ -100,6 +115,7 @@ Checked on 2026-11-01, all issues and PRs, open and closed:
 > five SIGKILLs while processing) lost 0 of 200 records with a 20 ms handler
 > and 10 of 20 with a 1500 ms handler. In both runs the group's committed
 > offset was at the end of the topic, so the lost records are never redelivered.
+> With the proposed fix, the same 1500 ms run lost 0 of 20 (4 duplicates).
 >
 > A graceful `Stop` is not affected (#106 drains the workers).
 >
@@ -172,6 +188,9 @@ Checked on 2026-11-01, all issues and PRs, open and closed:
 >   removed, because `ReadMessage` no longer commits; a commit error in `Ack` is logged.
 > - `go test -race ./...` and `golangci-lint` v1.64.8 with `.golangci.yml` pass.
 >   The integration tests were not run locally.
+> - Real broker (Kafka 3.9.1, 1 partition, `Concurrency: 1`, 1500 ms handler,
+>   five SIGKILLs while processing): `main` lost 10 of 20 records, this branch
+>   lost 0 of 20 and redelivered 4.
 >
 > *This fix and its tests were prepared with the help of an AI coding agent
 > (Claude Code, Anthropic). I reviewed the change and ran the tests.*
@@ -181,7 +200,7 @@ Checked on 2026-11-01, all issues and PRs, open and closed:
 The indexer uses cronsumer through kafka-konsumer for `products.retry`. In the
 failure matrix nothing was lost, because `reconcile -repair` is the backstop and
 retries only carry documents that already failed for 30 s. With the fix, a kill
-while cronsumer drains should cause redelivery, not loss. Showing that needs
-the chaos run and the SIGKILL reproduction on branch
-`cronsumer-commit-after-handled`.
-Neither has run (disk, see above). `go test -race ./...` passes on that branch.
+while cronsumer drains should cause redelivery, not loss. The SIGKILL
+reproduction shows it (0 lost instead of 10 of 20). The full failure matrix
+(`make chaos`) has not been re-run on that branch: it needs the whole stack,
+and the shared VM is overloaded. `go test -race ./...` passes on that branch.
