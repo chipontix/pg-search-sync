@@ -115,7 +115,8 @@ Checked on 2026-11-01, all issues and PRs, open and closed:
 > five SIGKILLs while processing) lost 0 of 200 records with a 20 ms handler
 > and 10 of 20 with a 1500 ms handler. In both runs the group's committed
 > offset was at the end of the topic, so the lost records are never redelivered.
-> With the proposed fix, the same 1500 ms run lost 0 of 20 (4 duplicates).
+> With the proposed fix, the same 1500 ms run lost 0 of 20, but `consumeFn` ran
+> 24 times for 20 records: the fix gives at-least-once, not exactly-once.
 >
 > A graceful `Stop` is not affected (#106 drains the workers).
 >
@@ -164,8 +165,12 @@ Checked on 2026-11-01, all issues and PRs, open and closed:
 > - README, *When to avoid*: the commit line now describes the new behaviour
 >   (committed after handling, asynchronously; a crash can redeliver).
 >
-> **Behaviour change.** A crash now redelivers records that were in flight,
-> instead of skipping them. Retry handlers already have to be idempotent (each
+> **Behaviour change: at-least-once, not exactly-once.** A crash now
+> redelivers records instead of skipping them. Two kinds are redelivered:
+> records still in flight, and records already handled whose offset was still
+> waiting for the next async commit (up to `CommitInterval` of work per
+> partition). In the SIGKILL run below, five kills gave 24 `consumeFn` calls
+> for 20 records, so 4 duplicates. Retry handlers already have to be idempotent (each
 > failed record comes back on the next run), so duplicates are not a new kind
 > of event for them. Throughput is unchanged: commits are still queued to
 > kafka-go and flushed every `CommitInterval`. Unchanged and out of scope: a
@@ -189,8 +194,8 @@ Checked on 2026-11-01, all issues and PRs, open and closed:
 > - `go test -race ./...` and `golangci-lint` v1.64.8 with `.golangci.yml` pass.
 >   The integration tests were not run locally.
 > - Real broker (Kafka 3.9.1, 1 partition, `Concurrency: 1`, 1500 ms handler,
->   five SIGKILLs while processing): `main` lost 10 of 20 records, this branch
->   lost 0 of 20 and redelivered 4.
+>   five SIGKILLs while processing): `main` lost 10 of 20 records; this branch
+>   lost 0 of 20, and `consumeFn` ran 24 times (4 duplicates).
 >
 > *This fix and its tests were prepared with the help of an AI coding agent
 > (Claude Code, Anthropic). I reviewed the change and ran the tests.*
