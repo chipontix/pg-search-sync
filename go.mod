@@ -147,3 +147,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
+
+replace github.com/Trendyol/kafka-cronsumer => github.com/chipontix/kafka-cronsumer v0.0.0-20261101065122-5897aa618d87

@@ -3,7 +3,11 @@ module cronsumer-crash-repro
 go 1.26.6
 
 require (
-	github.com/Trendyol/kafka-cronsumer v1.8.11 // indirect
+	github.com/Trendyol/kafka-cronsumer v1.8.11
+	github.com/segmentio/kafka-go v0.4.51
+)
+
+require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
@@ -15,7 +19,6 @@ require (
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	github.com/segmentio/kafka-go v0.4.51 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
@@ -26,3 +29,5 @@ require (
 	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 )
+
+replace github.com/Trendyol/kafka-cronsumer => github.com/chipontix/kafka-cronsumer v0.0.0-20261101065122-5897aa618d87
