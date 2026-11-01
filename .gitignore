@@ -4,3 +4,5 @@ deploy/gaos/scenario.json
 e2e/build/
 e2e/.gradle/
 e2e/.kotlin/
+docs/upstream/cronsumer-crash/repro
+docs/upstream/cronsumer-crash/processed.log

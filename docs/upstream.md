@@ -35,6 +35,11 @@ Related, from reading the code only (not reproduced): in `cronsumer.go`
 `produce`, a failed `ProduceWithRetryOption` to the retry or dead-letter
 topic is logged and the record is dropped, after its offset was committed.
 
+**Status:** fix and regression test on
+[`chipontix/kafka-cronsumer` `fix/commit-after-handled`](https://github.com/chipontix/kafka-cronsumer/tree/fix/commit-after-handled)
+(the test fails on `main`); issue and PR text in
+[UPSTREAM-PR.md](../UPSTREAM-PR.md). Not filed yet.
+
 In this project the retry path is only used for documents that still fail
 after 30 s of in-process retries, the indexer's own offsets are committed
 after the batch, and `reconcile -repair` re-emits anything that went

@@ -221,3 +221,16 @@ All three run in [CI](.github/workflows/ci.yml).
 loses retry records when a handler is slower than the commit interval
 (standalone reproduction), and three gaos bugs (data races, query string
 dropped by `redirect`, `span` ignoring `end`), each with a script.
+
+For the cronsumer one there is a fix with a regression test on
+[`chipontix/kafka-cronsumer` `fix/commit-after-handled`](https://github.com/chipontix/kafka-cronsumer/tree/fix/commit-after-handled);
+the issue and PR text, the library's contribution rules and how to check it
+are in [UPSTREAM-PR.md](UPSTREAM-PR.md). Not filed upstream yet.
+
+## How it was built
+
+The code, tests, benchmarks and documentation in this repository were written
+by an AI coding agent, Claude Code (Anthropic), to Rabiya's specification and
+under her direction: she set the goals, the constraints and what had to be
+measured, and reviewed the results. The same goes for the upstream fix and its
+tests. The commits are under her GitHub account.
