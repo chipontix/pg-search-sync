@@ -18,7 +18,15 @@ import (
 	segment "github.com/segmentio/kafka-go"
 )
 
-const broker, topic = "localhost:19092", "repro.retry"
+const topic = "repro.retry"
+
+// REPRO_BROKER: the Kafka address (default localhost:19092, the compose Redpanda).
+var broker = func() string {
+	if b := os.Getenv("REPRO_BROKER"); b != "" {
+		return b
+	}
+	return "localhost:19092"
+}()
 
 // WORK_MS: how long consumeFn takes per record (default 20ms).
 var work = func() time.Duration {
