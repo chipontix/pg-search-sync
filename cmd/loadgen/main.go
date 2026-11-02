@@ -265,7 +265,9 @@ func main() {
 		r.PipelineP50ms = histQuantile(before, after, 0.50) * 1000
 		r.PipelineP99ms = histQuantile(before, after, 0.99) * 1000
 	}
-	_ = json.NewEncoder(os.Stdout).Encode(r)
+	if err := json.NewEncoder(os.Stdout).Encode(r); err != nil {
+		app.Fatal("report", "error", err)
+	}
 }
 
 func pct(sorted []time.Duration, p float64) float64 {
