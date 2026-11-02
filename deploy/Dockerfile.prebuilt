@@ -1,0 +1,4 @@
+# Same runtime image as ../Dockerfile, with binaries from make bin-linux.
+FROM gcr.io/distroless/static-debian12
+COPY bin/linux-arm64/ /usr/local/bin/
+USER nonroot

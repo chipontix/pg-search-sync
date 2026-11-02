@@ -1,7 +1,7 @@
 # Everything runs in Docker except the Go and Gradle builds of the tests.
 COMPOSE = docker compose -f deploy/docker-compose.yml $(if $(COMPOSE_EXTRA),-f $(COMPOSE_EXTRA))
 
-.PHONY: up down demo test it e2e latency catchup chaos couchbase reproduce tables
+.PHONY: up down demo test it e2e latency catchup chaos couchbase reproduce tables bin-linux
 
 up:            ## PostgreSQL, Redpanda, Elasticsearch, cdc, indexer, api, Prometheus, Grafana
 	$(COMPOSE) up -d --build --wait postgres redpanda elasticsearch cdc indexer api prometheus grafana
@@ -26,6 +26,9 @@ e2e:           ## black-box tests of cmd/all with Stove (needs JDK 21)
 
 latency: up    ## write→searchable at 1k/5k/10k writes/s, 3 × 60 s each
 	bench/latency.sh 3 60s
+
+bin-linux:     ## app binaries for deploy/Dockerfile.prebuilt (small-VM overlay)
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o bin/linux-arm64/ ./cmd/...
 
 chaos:         ## failure matrix, zero lost documents required (SCENARIOS="a b" for a subset; starts what it needs)
 	bench/chaos.sh $(SCENARIOS)
