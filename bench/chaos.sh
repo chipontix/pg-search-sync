@@ -60,8 +60,18 @@ fault() {
     es-429-60s-kill-indexer) sleep $((FAULT_AT + 45)); kill_for indexer 5 ;;
     # kill while kafka-cronsumer drains the retry topic after the 429 window
     es-429-60s-kill-in-drain)
-      sleep $((FAULT_AT + 10 + 60 + ${DRAIN_AT:-8}))
-      rpk group describe products-indexer > "$RESULTS/chaos-logs/$2.group-at-kill.txt" 2>&1 || true
+      # A fixed delay can land after the retry topic is empty, which tests
+      # nothing: kill once the committed offset moves with records still behind it.
+      sleep $((FAULT_AT + 10 + 60 - ${DRAIN_LEAD:-15}))
+      local prev="" cur snap
+      for _ in $(seq 1 120); do
+        snap=$(rpk group describe products-indexer 2>&1 || true)
+        cur=$(awk '$1=="products.retry"{o+=$3; l+=$6} END{print o+0, l+0}' <<<"$snap")
+        if [[ -n $prev && ${cur% *} != "${prev% *}" && ${cur#* } != 0 ]]; then break; fi
+        prev=$cur; cur=""; sleep 0.2
+      done
+      echo "${cur:-retry offset did not move with lag before the deadline}" > "$RESULTS/chaos-logs/$2.group-at-kill.txt"
+      echo "$snap" >> "$RESULTS/chaos-logs/$2.group-at-kill.txt"
       kill_for indexer 5 ;;
     *) echo "unknown scenario $1" >&2; exit 2 ;;
   esac
