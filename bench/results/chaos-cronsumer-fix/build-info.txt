@@ -1,0 +1,6 @@
+	path	github.com/chipontix/pg-search-sync/cmd/indexer
+	mod	github.com/chipontix/pg-search-sync	v0.0.0-20261102205011-d227aac416d5+dirty	
+--
+	dep	github.com/Trendyol/kafka-cronsumer	v1.8.11
+	=>	github.com/chipontix/kafka-cronsumer	v0.0.0-20261101065122-5897aa618d87	h1:6uyDSU9n1sHbtGvfRfbd5Otw+bakJHrTu6p76rYo9k8=
+	dep	github.com/Trendyol/kafka-konsumer/v2	v2.6.19	h1:m4U+SUT7NoJhs2mEQuBpL2+870Um8/CuwW2tGtuePAE=

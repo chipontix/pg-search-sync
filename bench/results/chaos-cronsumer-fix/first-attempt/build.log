@@ -1,0 +1,161 @@
+ Image pg-search-sync:local Building 
+ Image pg-search-sync-gaos Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.09kB done
+#1 DONE 0.0s
+
+#2 [gaos internal] load build definition from Dockerfile
+#2 transferring dockerfile: 457B done
+#2 DONE 0.0s
+
+#3 [indexer internal] load build definition from Dockerfile.prebuilt
+#3 transferring dockerfile: 212B done
+#3 DONE 0.0s
+
+#4 [indexer internal] load metadata for gcr.io/distroless/static-debian12:latest
+#4 DONE 0.0s
+
+#5 [indexer internal] load .dockerignore
+#5 transferring context: 64B done
+#5 DONE 0.0s
+
+#6 [indexer internal] load build context
+#6 transferring context: 369B done
+#6 DONE 0.0s
+
+#7 [indexer 1/2] FROM gcr.io/distroless/static-debian12:latest@sha256:d75cdd72874d4790092fcb1b058493ecf6bb5bf2b2b897045b00ff01d91843f2
+#7 resolve gcr.io/distroless/static-debian12:latest@sha256:d75cdd72874d4790092fcb1b058493ecf6bb5bf2b2b897045b00ff01d91843f2 0.0s done
+#7 DONE 0.0s
+
+#8 [indexer 2/2] COPY bin/linux-arm64/ /usr/local/bin/
+#8 CACHED
+
+#9 [indexer] exporting to image
+#9 exporting layers done
+#9 exporting manifest sha256:e65e9b95e512df4c0f895e77ceb1ebc5f449cad0b3c8bbfb479a97973f291302 done
+#9 exporting config sha256:6c1eba9fb8b97c7b0c583082dee0461b3ebedb1397345d6566bc84617d60d8ca done
+#9 exporting attestation manifest sha256:cc64cdd0e413a2c674acd5fb516fb62e9fe831ae4de21ee2ee884bc9509f95c7 done
+#9 exporting manifest list sha256:0134228d3cac58504a00dcf230bd16676faa1bacb60cc2ef4a08c186a4332454 done
+#9 naming to docker.io/library/pg-search-sync:local done
+#9 unpacking to docker.io/library/pg-search-sync:local done
+#9 DONE 0.1s
+
+#10 [indexer] resolving provenance for metadata file
+#10 DONE 0.0s
+
+#11 [gaos internal] load metadata for docker.io/library/golang:1.26
+#11 DONE 0.8s
+
+#12 [gaos internal] load .dockerignore
+#12 transferring context: 2B done
+#12 DONE 0.0s
+
+#7 [gaos stage-1 1/2] FROM gcr.io/distroless/static-debian12:latest@sha256:d75cdd72874d4790092fcb1b058493ecf6bb5bf2b2b897045b00ff01d91843f2
+#7 resolve gcr.io/distroless/static-debian12:latest@sha256:d75cdd72874d4790092fcb1b058493ecf6bb5bf2b2b897045b00ff01d91843f2 0.0s done
+#7 DONE 0.0s
+
+#13 [gaos build 1/2] FROM docker.io/library/golang:1.26@sha256:670bb5aa5349ae03b8516764718486f4f16399134bdc9acd0c46a23f043ab05c
+#13 resolve docker.io/library/golang:1.26@sha256:670bb5aa5349ae03b8516764718486f4f16399134bdc9acd0c46a23f043ab05c 0.0s done
+#13 DONE 0.0s
+
+#14 [gaos build 2/2] RUN git clone https://github.com/Trendyol/gaos /src && cd /src && git checkout "771d620"  && CGO_ENABLED=0 go build -o /gaos .
+#14 CACHED
+
+#15 [gaos stage-1 2/2] COPY --from=build /gaos /gaos
+#15 CACHED
+
+#16 [gaos] exporting to image
+#16 exporting layers done
+#16 exporting manifest sha256:7ca856917cff36794e180295e8eca2258a36e317c6c08ce7f6d481288ba2eaa6 done
+#16 exporting config sha256:876966239aa80c97963d6ff61b14b7918a94b6316be048d10fecfc110a4cf5f6 done
+#16 exporting attestation manifest sha256:5da6506ec748d705d15749ee4e3efc7329437976800e6addbf5662e380149ff9 0.0s done
+#16 exporting manifest list sha256:12bf0e173cf18314f9c6eb8bdeceb4fb07351d63c5417412f0c767bc179cea95 done
+#16 naming to docker.io/library/pg-search-sync-gaos:latest done
+#16 unpacking to docker.io/library/pg-search-sync-gaos:latest done
+#16 DONE 0.1s
+
+#17 [gaos] resolving provenance for metadata file
+#17 DONE 0.0s
+ Image pg-search-sync:local Built 
+ Image pg-search-sync-gaos Built 
+ Image pg-search-sync:local Building 
+ Image pg-search-sync-gaos Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.09kB done
+#1 DONE 0.0s
+
+#2 [indexer internal] load build definition from Dockerfile.prebuilt
+#2 transferring dockerfile: 212B done
+#2 DONE 0.0s
+
+#3 [gaos internal] load build definition from Dockerfile
+#3 transferring dockerfile: 457B done
+#3 DONE 0.0s
+
+#4 [gaos internal] load metadata for gcr.io/distroless/static-debian12:latest
+#4 DONE 0.0s
+
+#5 [indexer internal] load .dockerignore
+#5 transferring context: 64B done
+#5 DONE 0.0s
+
+#6 [indexer internal] load build context
+#6 transferring context: 369B done
+#6 DONE 0.0s
+
+#7 [indexer 1/2] FROM gcr.io/distroless/static-debian12:latest@sha256:d75cdd72874d4790092fcb1b058493ecf6bb5bf2b2b897045b00ff01d91843f2
+#7 resolve gcr.io/distroless/static-debian12:latest@sha256:d75cdd72874d4790092fcb1b058493ecf6bb5bf2b2b897045b00ff01d91843f2 0.0s done
+#7 DONE 0.0s
+
+#8 [indexer 2/2] COPY bin/linux-arm64/ /usr/local/bin/
+#8 CACHED
+
+#9 [indexer] exporting to image
+#9 exporting layers done
+#9 exporting manifest sha256:e65e9b95e512df4c0f895e77ceb1ebc5f449cad0b3c8bbfb479a97973f291302 done
+#9 exporting config sha256:6c1eba9fb8b97c7b0c583082dee0461b3ebedb1397345d6566bc84617d60d8ca done
+#9 exporting attestation manifest sha256:ee0325e56f6a781f08507b251de606195772d230d22c0f0108d4d071da03e81d
+#9 exporting attestation manifest sha256:ee0325e56f6a781f08507b251de606195772d230d22c0f0108d4d071da03e81d done
+#9 exporting manifest list sha256:d38e2cd36cec041c8998e5c8f6b7b9c14bd6de322ee74b29b792c9f692497994 done
+#9 naming to docker.io/library/pg-search-sync:local done
+#9 unpacking to docker.io/library/pg-search-sync:local done
+#9 DONE 0.1s
+
+#10 [indexer] resolving provenance for metadata file
+#10 DONE 0.0s
+
+#11 [gaos internal] load metadata for docker.io/library/golang:1.26
+#11 DONE 0.7s
+
+#12 [gaos internal] load .dockerignore
+#12 transferring context: 2B done
+#12 DONE 0.0s
+
+#7 [gaos stage-1 1/2] FROM gcr.io/distroless/static-debian12:latest@sha256:d75cdd72874d4790092fcb1b058493ecf6bb5bf2b2b897045b00ff01d91843f2
+#7 resolve gcr.io/distroless/static-debian12:latest@sha256:d75cdd72874d4790092fcb1b058493ecf6bb5bf2b2b897045b00ff01d91843f2 0.0s done
+#7 DONE 0.0s
+
+#13 [gaos build 1/2] FROM docker.io/library/golang:1.26@sha256:670bb5aa5349ae03b8516764718486f4f16399134bdc9acd0c46a23f043ab05c
+#13 resolve docker.io/library/golang:1.26@sha256:670bb5aa5349ae03b8516764718486f4f16399134bdc9acd0c46a23f043ab05c 0.0s done
+#13 DONE 0.0s
+
+#14 [gaos build 2/2] RUN git clone https://github.com/Trendyol/gaos /src && cd /src && git checkout "771d620"  && CGO_ENABLED=0 go build -o /gaos .
+#14 CACHED
+
+#15 [gaos stage-1 2/2] COPY --from=build /gaos /gaos
+#15 CACHED
+
+#16 [gaos] exporting to image
+#16 exporting layers done
+#16 exporting manifest sha256:7ca856917cff36794e180295e8eca2258a36e317c6c08ce7f6d481288ba2eaa6 done
+#16 exporting config sha256:876966239aa80c97963d6ff61b14b7918a94b6316be048d10fecfc110a4cf5f6 done
+#16 exporting attestation manifest sha256:9b7151d8b5f44133302c0a8472123d6c2030e41ab1aba0ee115ea0146f1ef84d 0.0s done
+#16 exporting manifest list sha256:193805008a15dead5a3614a05a26fbeddf1ee8fad3cefcf9f91d8df83f594438 done
+#16 naming to docker.io/library/pg-search-sync-gaos:latest done
+#16 unpacking to docker.io/library/pg-search-sync-gaos:latest done
+#16 DONE 0.1s
+
+#17 [gaos] resolving provenance for metadata file
+#17 DONE 0.0s
+ Image pg-search-sync:local Built 
+ Image pg-search-sync-gaos Built 

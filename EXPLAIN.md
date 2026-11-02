@@ -61,9 +61,28 @@ PostgreSQL ──(слот логической репликации)──► c
   работы на партицию). Обработчик всё равно обязан быть идемпотентным, у нас
   это обеспечивает `version_type=external`
   (`docs/upstream/cronsumer-crash/compare.sh`, логи в `bench/results/cronsumer-crash/`).
-  Фикс проверен только этим SIGKILL-repro. Полную матрицу отказов на ветке
-  `cronsumer-commit-after-handled` не прогоняли: на общем стенде не хватило
-  места на диске под весь стек.
+  Потом на ветке `cronsumer-commit-after-handled` прогнали полную матрицу (таблица
+  и числа в README, раздел Upstream). Потерь нет, но и на v1.8.11 их не было, так
+  что матрица показывает отсутствие регрессии, а пользу фикса показывает только
+  SIGKILL-repro.
+- **Сценарий `kill-in-drain` ничего не проверял, и это видно только по снимку
+  группы.** Первый заход на ветке дал 0/0/0, но снимок перед kill показал лаг
+  retry-топика 0: фиксированная пауза приходила, когда топик уже разобран. Теперь
+  `chaos.sh` опрашивает группу и убивает индексатор, когда закоммиченный offset
+  движется, а лаг ещё не нулевой. Заход повторили целиком, старый лежит в
+  `bench/results/chaos-cronsumer-fix/first-attempt/`. Строка этого сценария в
+  октябрьской таблице README снята с прежней паузой, состояние группы там не записано.
+- **loadgen терял отчёт и выходил с кодом 0.** После долгого простоя квантиль
+  попадал в бакет `+Inf`, `json.Encode` отказывался кодировать `Inf`, а ошибку
+  глушил `_ =`. `chaos.sh` под `pipefail` молча обрывался до reconcile (5 из 14
+  дошедших до конца нагрузки прогонов). Первая версия, «гонка `docker logs`», не
+  подтвердилась: повторы чтения не помогли. Тесты в `cmd/loadgen/hist_test.go`
+  падали до фикса.
+- **`go mod download` в общей ВМ не закончился за 31 минуту**, сеть была около
+  100 КБ/с. Поэтому `deploy/docker-compose.small-vm.yml` собирает образ из
+  бинарников хоста (`make bin-linux`). Что в образе именно форк, видно по
+  `build-info.txt`; символ `kafkaConsumer.Ack` есть только в форке. Метка
+  `kafka-cronsumer@v1.8.11` в логах ни о чём не говорит, это путь от `-trimpath`.
 - **gaos (прокси для инъекции отказов) с `-race`** дал 7–8 data race на 400
   запросов. Ещё у него `redirect` теряет query string, а `span` без `start`
   игнорирует `end`. Скрипт: `docs/upstream/gaos/repro.sh`. На наши прогоны это
@@ -101,6 +120,7 @@ PostgreSQL ──(слот логической репликации)──► c
 | Catch-up 10M | `bench/results/catchup.jsonl` | `make catchup` |
 | Failure matrix | `bench/results/chaos.jsonl`, логи в `bench/results/chaos-logs/` | `make chaos` |
 | Couchbase | `bench/results/couchbase.jsonl` | `make couchbase` |
+| Матрица на ветке с фиксом | `bench/results/chaos-cronsumer-fix/chaos.jsonl`, логи и снимки группы там же | команды в README, раздел Upstream |
 | Находка в cronsumer | `docs/upstream.md`, `bench/results/cronsumer-crash/*.log` | `docs/upstream/cronsumer-crash/compare.sh` |
 | Все таблицы README | `bench/results/*.jsonl` | `make tables` |
 
@@ -149,5 +169,6 @@ git checkout fix/commit-after-handled && go test -race ./...                    
    дубли по версии. Сходится за 21 с, при трёх убийствах подряд — за 45 с.
 10. **Что не сделано?** Начального снапшота нет. Tombstone не чистятся. Схема
     фиксированная. reconcile держит одну транзакцию и не масштабируется за
-    несколько миллионов строк. Всё на одной VM ноутбука. Матрица отказов с
-    фиксом cronsumer ещё не перепрогнана.
+    несколько миллионов строк. Всё на одной VM ноутбука. Матрица с фиксом
+    cronsumer прогнана один раз на урезанном стенде: каждый сценарий по разу, kill-in-drain
+    трижды, момент kill каждый раз один.

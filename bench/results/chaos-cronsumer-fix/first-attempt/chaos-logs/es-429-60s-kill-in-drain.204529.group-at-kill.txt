@@ -1,0 +1,17 @@
+GROUP        products-indexer
+COORDINATOR  0
+STATE        Stable
+BALANCER     range
+MEMBERS      2
+TOTAL-LAG    1514
+
+TOPIC           PARTITION  CURRENT-OFFSET  LOG-START-OFFSET  LOG-END-OFFSET  LAG   MEMBER-ID                                                                                  CLIENT-ID                                             HOST
+products.cdc    0          152184          0                 152435          251   indexer@36a22885d0dd (github.com/segmentio/kafka-go)-28e24048-9fec-4cb9-a08f-d1da2fe71d4d  indexer@36a22885d0dd (github.com/segmentio/kafka-go)  172.21.0.5
+products.cdc    1          152014          0                 152238          224   indexer@36a22885d0dd (github.com/segmentio/kafka-go)-28e24048-9fec-4cb9-a08f-d1da2fe71d4d  indexer@36a22885d0dd (github.com/segmentio/kafka-go)  172.21.0.5
+products.cdc    2          152119          0                 152391          272   indexer@36a22885d0dd (github.com/segmentio/kafka-go)-28e24048-9fec-4cb9-a08f-d1da2fe71d4d  indexer@36a22885d0dd (github.com/segmentio/kafka-go)  172.21.0.5
+products.cdc    3          153013          0                 153277          264   indexer@36a22885d0dd (github.com/segmentio/kafka-go)-28e24048-9fec-4cb9-a08f-d1da2fe71d4d  indexer@36a22885d0dd (github.com/segmentio/kafka-go)  172.21.0.5
+products.cdc    4          152820          0                 153050          230   indexer@36a22885d0dd (github.com/segmentio/kafka-go)-28e24048-9fec-4cb9-a08f-d1da2fe71d4d  indexer@36a22885d0dd (github.com/segmentio/kafka-go)  172.21.0.5
+products.cdc    5          152914          0                 153187          273   indexer@36a22885d0dd (github.com/segmentio/kafka-go)-28e24048-9fec-4cb9-a08f-d1da2fe71d4d  indexer@36a22885d0dd (github.com/segmentio/kafka-go)  172.21.0.5
+products.retry  0          2847            0                 2847            0     indexer@36a22885d0dd (github.com/segmentio/kafka-go)-d75d9e35-fdf1-443a-abf5-e76ec1d50c9e  indexer@36a22885d0dd (github.com/segmentio/kafka-go)  172.21.0.5
+products.retry  1          2847            0                 2847            0     indexer@36a22885d0dd (github.com/segmentio/kafka-go)-d75d9e35-fdf1-443a-abf5-e76ec1d50c9e  indexer@36a22885d0dd (github.com/segmentio/kafka-go)  172.21.0.5
+products.retry  2          2846            0                 2846            0     indexer@36a22885d0dd (github.com/segmentio/kafka-go)-d75d9e35-fdf1-443a-abf5-e76ec1d50c9e  indexer@36a22885d0dd (github.com/segmentio/kafka-go)  172.21.0.5

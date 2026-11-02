@@ -180,6 +180,13 @@ extra documents** against PostgreSQL.
 "Converged in" is measured after the load stops and includes one full
 reconcile pass (time above). `-repair` was never needed in these runs.
 
+This table is from October, with `chaos.sh` as it was then. The drain row used a
+fixed delay before the kill and recorded no consumer group state, so it does not
+show whether the retry topic still had records at that moment. In a later run
+that delay landed at lag 0, and `chaos.sh` now polls the group and kills while
+the committed offset is moving. Run the same way today, the 429 window also opens
+later relative to the load.
+
 ### Optional second path: Couchbase → go-dcp-elasticsearch
 
 [`bench/couchbase.sh`](bench/couchbase.sh): Couchbase Server 7.6.2 Community,
@@ -252,10 +259,46 @@ and the fork lost 0 of 20, with 4 duplicates (24 handler calls for 20
 records): the fix makes the retry path at-least-once, not exactly-once, so the
 handler still has to be idempotent (here, `version_type=external` makes it so).
 Raw output: [`bench/results/cronsumer-crash/`](bench/results/cronsumer-crash/).
-The fix is checked by that SIGKILL reproduction only: the full failure
-matrix has not been run on the `cronsumer-commit-after-handled` branch,
-because the shared test machine did not have the disk space for the whole
-stack at the time.
+The full failure matrix then ran on the `cronsumer-commit-after-handled` branch,
+with the indexer binary built from the fork:
+
+<!-- generated:chaos_fix -->
+| scenario | through retry topic | DLQ | missing / stale / extra | converged in |
+|---|---|---|---|---|
+| … plus kill -9 while cronsumer drains (3 runs) | 145–156 | 0 | 0 / 0 / 0 | 5–28 s |
+| gaos: 429 on every `_bulk` for 60 s | 4,096 | 0 | 0 / 0 / 0 | 5 s |
+| … plus kill -9 indexer inside the window | 159 | 0 | 0 / 0 / 0 | 10 s |
+| kill -9 indexer, back after 10 s | 0 | 0 | 0 / 0 / 0 | 9 s |
+| kill -9 indexer three times | 0 | 0 | 0 / 0 / 0 | 10 s |
+| kill -9 cdc connector, 10 s | 0 | 0 | 0 / 0 / 0 | 12 s |
+| kill -9 Redpanda (the broker), 20 s | 0 | 0 | 0 / 0 / 0 | 7 s |
+| restart PostgreSQL | 0 | 0 | 0 / 0 / 0 | 7 s |
+| gaos: 429 on every 2nd `_bulk` | 0 | 0 | 0 / 0 / 0 | 15 s |
+
+11 runs, 2,615,744 writes, 0 documents missing, stale or extra. 0.24–0.71M rows at the checks. At the 3 drain kills the retry topic had 86–101 records behind a committed offset that was moving. Host load average at the start of each run: 11–34.
+<!-- /generated -->
+
+What this does and does not show. It shows no regression: nothing was lost
+without `-repair`. It does not show that the fix is needed, because the matrix on
+v1.8.11 above also lost nothing; only the SIGKILL reproduction separates the two.
+The two tables are not comparable on time: this run used a 4 CPU / 6 GB VM
+([smaller heaps, other host ports, `postgres:17-alpine`, binaries built on the
+host](deploy/docker-compose.small-vm.yml)), a table that started empty and a
+busy host. In the drain and kill-indexer runs the indexer was still handing
+records to the retry topic when it was killed and the logs show no hand-off after
+that, so they carry far fewer retry-topic records than the plain 429 run. Each
+run kills at one moment; this is not a search of all crash points.
+
+```bash
+git checkout cronsumer-commit-after-handled && make bin-linux
+export COMPOSE_EXTRA=deploy/docker-compose.small-vm.yml CHAOS_RESULTS=bench/results/chaos-cronsumer-fix
+make chaos
+make chaos SCENARIOS="es-429-60s-kill-in-drain es-429-60s-kill-in-drain"
+```
+
+Raw output: [`bench/results/chaos-cronsumer-fix/`](bench/results/chaos-cronsumer-fix/),
+including a [first attempt](bench/results/chaos-cronsumer-fix/first-attempt/ABOUT.md)
+that found the problems fixed before this pass.
 
 ## How it was built
 
