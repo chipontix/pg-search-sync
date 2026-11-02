@@ -1,7 +1,15 @@
 # Layer on top of docker-compose.yml with COMPOSE_EXTRA=deploy/docker-compose.small-vm.yml:
-# a 4 CPU / 6 GB VM shared with other stacks, host ports moved to 25000+.
+# a 4 CPU / 6 GB VM shared with other stacks, host ports moved to 25000+, smaller
+# heaps, a PostgreSQL image that was already local, and app binaries built on the
+# host (make bin-linux): go mod download inside the VM did not finish in 30 minutes.
+x-prebuilt: &prebuilt
+  build: {context: .., dockerfile: deploy/Dockerfile.prebuilt}
+
 services:
+  loadgen: *prebuilt
+  reconcile: *prebuilt
   postgres:
+    image: postgres:17-alpine
     command: [postgres, -c, wal_level=logical, -c, max_wal_senders=10, -c, max_replication_slots=10,
               -c, shared_buffers=256MB, -c, max_connections=300, -c, max_slot_wal_keep_size=5GB]
     ports: !override ["25432:5432"]
@@ -15,10 +23,13 @@ services:
       ES_JAVA_OPTS: -Xms1g -Xmx1g
     ports: !override ["25200:9200"]
   cdc:
+    <<: *prebuilt
     ports: !override ["25112:2112"]
   indexer:
+    <<: *prebuilt
     ports: !override ["25091:8091"]
   api:
+    <<: *prebuilt
     ports: !override ["25080:8080"]
   prometheus:
     ports: !override ["25090:9090"]
