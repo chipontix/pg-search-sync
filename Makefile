@@ -1,5 +1,5 @@
 # Everything runs in Docker except the Go and Gradle builds of the tests.
-COMPOSE = docker compose -f deploy/docker-compose.yml
+COMPOSE = docker compose -f deploy/docker-compose.yml $(if $(COMPOSE_EXTRA),-f $(COMPOSE_EXTRA))
 
 .PHONY: up down demo test it e2e latency catchup chaos couchbase reproduce tables
 
@@ -27,8 +27,8 @@ e2e:           ## black-box tests of cmd/all with Stove (needs JDK 21)
 latency: up    ## write→searchable at 1k/5k/10k writes/s, 3 × 60 s each
 	bench/latency.sh 3 60s
 
-chaos: up      ## failure matrix, zero lost documents required
-	bench/chaos.sh
+chaos:         ## failure matrix, zero lost documents required (SCENARIOS="a b" for a subset; starts what it needs)
+	bench/chaos.sh $(SCENARIOS)
 
 catchup:       ## 10M rows, go-pq-cdc-kafka vs Debezium, same limits (stops the main stack first)
 	$(COMPOSE) stop
