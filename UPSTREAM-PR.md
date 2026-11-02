@@ -207,8 +207,8 @@ failure matrix nothing was lost, because `reconcile -repair` is the backstop and
 retries only carry documents that already failed for 30 s. With the fix, a kill
 while cronsumer drains should cause redelivery, not loss. The SIGKILL
 reproduction shows it (0 lost instead of 10 of 20), and that reproduction is
-the only check of the fix against a broker. The full failure matrix
-(`make chaos`) has not been run on that branch because of the test machine's
-resources: the VM is shared with other workloads, and on 2026-11-01 the host
-did not have the disk space for the whole stack (images, build and
-Elasticsearch data). `go test -race ./...` passes on that branch.
+the only check that separates the fix from v1.8.11. The full failure matrix also
+ran on that branch, on a smaller stack, and lost nothing, including three kills
+while the retry topic was being consumed. The matrix on v1.8.11 lost nothing
+either, so this shows no regression, not a benefit (numbers in the README).
+`go test -race ./...` passes on that branch.

@@ -1,0 +1,12 @@
+indexer-1  | {"time":"2026-11-02T20:43:36.912150392Z","level":"INFO","msg":"listening","addr":":8091"}
+indexer-1  | {"level":"INFO","time":"2026-11-02T20:43:36.915Z","sourceLocation":"v2@v2.6.19/consumer_base.go:109","message":"Topic [[products.cdc]] verified successfully!"}
+indexer-1  | {"level":"INFO","time":"2026-11-02T20:43:36.917Z","sourceLocation":"kafka-cronsumer@v1.8.11/cronsumer.go:17","message":"Topic [products.retry] verified successfully!"}
+indexer-1  | {"time":"2026-11-02T20:43:36.917279518Z","level":"INFO","msg":"indexer started","index":"products"}
+indexer-1  | {"time":"2026-11-02T20:44:03.253240038Z","level":"INFO","msg":"listening","addr":":8091"}
+indexer-1  | {"level":"INFO","time":"2026-11-02T20:44:03.26Z","sourceLocation":"v2@v2.6.19/consumer_base.go:109","message":"Topic [[products.cdc]] verified successfully!"}
+indexer-1  | {"level":"INFO","time":"2026-11-02T20:44:03.26Z","sourceLocation":"kafka-cronsumer@v1.8.11/cronsumer.go:17","message":"Topic [products.retry] verified successfully!"}
+indexer-1  | {"time":"2026-11-02T20:44:03.2606873Z","level":"INFO","msg":"indexer started","index":"products"}
+indexer-1  | {"time":"2026-11-02T20:44:29.744061748Z","level":"INFO","msg":"listening","addr":":8091"}
+indexer-1  | {"level":"INFO","time":"2026-11-02T20:44:29.747Z","sourceLocation":"v2@v2.6.19/consumer_base.go:109","message":"Topic [[products.cdc]] verified successfully!"}
+indexer-1  | {"level":"INFO","time":"2026-11-02T20:44:29.748Z","sourceLocation":"kafka-cronsumer@v1.8.11/cronsumer.go:17","message":"Topic [products.retry] verified successfully!"}
+indexer-1  | {"time":"2026-11-02T20:44:29.749166624Z","level":"INFO","msg":"indexer started","index":"products"}

@@ -1,0 +1,3 @@
+ Container pg-search-sync-reconcile-run-e08993ec4037 Creating 
+ Container pg-search-sync-reconcile-run-e08993ec4037 Created 
+{"source_rows":527340,"es_live_docs":527340,"missing":0,"stale":0,"extra":0,"ahead":0,"elapsed":"6.417s"}

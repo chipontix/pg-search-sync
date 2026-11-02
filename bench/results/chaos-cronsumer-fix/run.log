@@ -1,0 +1,151 @@
+2026-11-02T20:50:27Z branch cronsumer-commit-after-handled sha d227aac416d5fb1065caf8e5895bea2e226f44d7 scenarios: es-429-60s-kill-in-drain es-429-60s es-429-60s-kill-indexer kill-indexer kill-indexer-3x kill-cdc kill-broker restart-postgres es-429-every-2nd es-429-60s-kill-in-drain es-429-60s-kill-in-drain
+2026-11-02T20:50:27Z /dev/disk3s5   926Gi   846Gi    52Gi    95%     10M  544M    2%   /System/Volumes/Data
+2026-11-02T20:50:27Z lock taken
+2026-11-02T20:50:28Z docker: 4 cpu, 6197444608 bytes
+2026-11-02T20:50:28Z building
+2026-11-02T20:50:39Z build info:  path github.com/chipontix/pg-search-sync/cmd/indexer; mod github.com/chipontix/pg-search-sync v0.0.0-20261102205011-d227aac416d5+dirty ;--; dep github.com/Trendyol/kafka-cronsumer v1.8.11; => github.com/chipontix/kafka-cronsumer v0.0.0-20261101065122-5897aa618d87 h1:6uyDSU9n1sHbtGvfRfbd5Otw+bakJHrTu6p76rYo9k8=; dep github.com/Trendyol/kafka-konsumer/v2 v2.6.19 h1:m4U+SUT7NoJhs2mEQuBpL2+870Um8/CuwW2tGtuePAE=;
+2026-11-02T20:50:39Z start es-429-60s-kill-in-drain; host load: 26.03 18.85 20.56
+2026-11-02T20:53:09Z end es-429-60s-kill-in-drain rc=0
+/pg-search-sync-cdc-1 oom=false restarts=0 status=running
+/pg-search-sync-elasticsearch-1 oom=false restarts=0 status=running
+/pg-search-sync-indexer-1 oom=false restarts=0 status=running
+/pg-search-sync-postgres-1 oom=false restarts=0 status=running
+/pg-search-sync-redpanda-1 oom=false restarts=0 status=running
+/pg-search-sync-topics-1 oom=false restarts=0 status=exited
+pg-search-sync-indexer-1 1.27% 6.176MiB / 5.772GiB
+pg-search-sync-cdc-1 0.42% 64.48MiB / 5.772GiB
+pg-search-sync-postgres-1 0.06% 111.4MiB / 5.772GiB
+pg-search-sync-elasticsearch-1 1.37% 1.594GiB / 5.772GiB
+pg-search-sync-redpanda-1 6.13% 228.3MiB / 5.772GiB
+2026-11-02T20:53:11Z start es-429-60s; host load: 21.23 19.95 20.71
+2026-11-02T20:55:28Z end es-429-60s rc=0
+/pg-search-sync-cdc-1 oom=false restarts=0 status=running
+/pg-search-sync-elasticsearch-1 oom=false restarts=0 status=running
+/pg-search-sync-indexer-1 oom=false restarts=0 status=running
+/pg-search-sync-postgres-1 oom=false restarts=0 status=running
+/pg-search-sync-redpanda-1 oom=false restarts=0 status=running
+/pg-search-sync-topics-1 oom=false restarts=0 status=exited
+pg-search-sync-indexer-1 1.19% 6.508MiB / 5.772GiB
+pg-search-sync-cdc-1 1.07% 56.3MiB / 5.772GiB
+pg-search-sync-postgres-1 1.51% 130.6MiB / 5.772GiB
+pg-search-sync-elasticsearch-1 0.66% 1.711GiB / 5.772GiB
+pg-search-sync-redpanda-1 5.21% 265.2MiB / 5.772GiB
+2026-11-02T20:55:30Z start es-429-60s-kill-indexer; host load: 34.35 24.88 22.54
+2026-11-02T20:57:54Z end es-429-60s-kill-indexer rc=0
+/pg-search-sync-cdc-1 oom=false restarts=0 status=running
+/pg-search-sync-elasticsearch-1 oom=false restarts=0 status=running
+/pg-search-sync-indexer-1 oom=false restarts=0 status=running
+/pg-search-sync-postgres-1 oom=false restarts=0 status=running
+/pg-search-sync-redpanda-1 oom=false restarts=0 status=running
+/pg-search-sync-topics-1 oom=false restarts=0 status=exited
+pg-search-sync-indexer-1 1.23% 6.082MiB / 5.772GiB
+pg-search-sync-cdc-1 0.49% 59.16MiB / 5.772GiB
+pg-search-sync-postgres-1 1.19% 149.7MiB / 5.772GiB
+pg-search-sync-elasticsearch-1 0.75% 1.73GiB / 5.772GiB
+pg-search-sync-redpanda-1 6.44% 300.1MiB / 5.772GiB
+2026-11-02T20:57:56Z start kill-indexer; host load: 26.34 27.50 24.15
+2026-11-02T21:00:14Z end kill-indexer rc=0
+/pg-search-sync-cdc-1 oom=false restarts=0 status=running
+/pg-search-sync-elasticsearch-1 oom=false restarts=0 status=running
+/pg-search-sync-indexer-1 oom=false restarts=0 status=running
+/pg-search-sync-postgres-1 oom=false restarts=0 status=running
+/pg-search-sync-redpanda-1 oom=false restarts=0 status=running
+/pg-search-sync-topics-1 oom=false restarts=0 status=exited
+pg-search-sync-indexer-1 0.67% 62.8MiB / 5.772GiB
+pg-search-sync-cdc-1 0.19% 55.21MiB / 5.772GiB
+pg-search-sync-postgres-1 0.05% 171.2MiB / 5.772GiB
+pg-search-sync-elasticsearch-1 18.24% 1.735GiB / 5.772GiB
+pg-search-sync-redpanda-1 0.98% 337.1MiB / 5.772GiB
+2026-11-02T21:00:16Z start kill-indexer-3x; host load: 17.70 25.69 24.08
+2026-11-02T21:02:33Z end kill-indexer-3x rc=0
+/pg-search-sync-cdc-1 oom=false restarts=0 status=running
+/pg-search-sync-elasticsearch-1 oom=false restarts=0 status=running
+/pg-search-sync-indexer-1 oom=false restarts=0 status=running
+/pg-search-sync-postgres-1 oom=false restarts=0 status=running
+/pg-search-sync-redpanda-1 oom=false restarts=0 status=running
+/pg-search-sync-topics-1 oom=false restarts=0 status=exited
+pg-search-sync-cdc-1 0.25% 57MiB / 5.772GiB
+pg-search-sync-indexer-1 0.74% 53.23MiB / 5.772GiB
+pg-search-sync-postgres-1 0.10% 190.4MiB / 5.772GiB
+pg-search-sync-elasticsearch-1 1.35% 1.739GiB / 5.772GiB
+pg-search-sync-redpanda-1 3.22% 375.1MiB / 5.772GiB
+2026-11-02T21:02:35Z start kill-cdc; host load: 11.11 19.60 21.82
+2026-11-02T21:04:56Z end kill-cdc rc=0
+/pg-search-sync-cdc-1 oom=false restarts=0 status=running
+/pg-search-sync-elasticsearch-1 oom=false restarts=0 status=running
+/pg-search-sync-indexer-1 oom=false restarts=0 status=running
+/pg-search-sync-postgres-1 oom=false restarts=0 status=running
+/pg-search-sync-redpanda-1 oom=false restarts=0 status=running
+/pg-search-sync-topics-1 oom=false restarts=0 status=exited
+pg-search-sync-cdc-1 0.30% 61.68MiB / 5.772GiB
+pg-search-sync-indexer-1 0.99% 52.29MiB / 5.772GiB
+pg-search-sync-postgres-1 0.96% 215.1MiB / 5.772GiB
+pg-search-sync-elasticsearch-1 1.88% 1.742GiB / 5.772GiB
+pg-search-sync-redpanda-1 4.33% 411.4MiB / 5.772GiB
+2026-11-02T21:04:58Z start kill-broker; host load: 16.60 18.23 20.88
+2026-11-02T21:07:14Z end kill-broker rc=0
+/pg-search-sync-cdc-1 oom=false restarts=8 status=running
+/pg-search-sync-elasticsearch-1 oom=false restarts=0 status=running
+/pg-search-sync-indexer-1 oom=false restarts=0 status=running
+/pg-search-sync-postgres-1 oom=false restarts=0 status=running
+/pg-search-sync-redpanda-1 oom=false restarts=0 status=running
+/pg-search-sync-topics-1 oom=false restarts=0 status=exited
+pg-search-sync-cdc-1 0.37% 51.86MiB / 5.772GiB
+pg-search-sync-indexer-1 1.39% 61.57MiB / 5.772GiB
+pg-search-sync-postgres-1 1.37% 233.4MiB / 5.772GiB
+pg-search-sync-elasticsearch-1 1.93% 1.745GiB / 5.772GiB
+pg-search-sync-redpanda-1 6.68% 448.8MiB / 5.772GiB
+2026-11-02T21:07:16Z start restart-postgres; host load: 19.24 18.44 20.55
+2026-11-02T21:09:34Z end restart-postgres rc=0
+/pg-search-sync-cdc-1 oom=false restarts=2 status=running
+/pg-search-sync-elasticsearch-1 oom=false restarts=0 status=running
+/pg-search-sync-indexer-1 oom=false restarts=0 status=running
+/pg-search-sync-postgres-1 oom=false restarts=0 status=running
+/pg-search-sync-redpanda-1 oom=false restarts=0 status=running
+/pg-search-sync-topics-1 oom=false restarts=0 status=exited
+pg-search-sync-indexer-1 1.13% 68.39MiB / 5.772GiB
+pg-search-sync-cdc-1 0.46% 68.15MiB / 5.772GiB
+pg-search-sync-postgres-1 2.02% 192.4MiB / 5.772GiB
+pg-search-sync-elasticsearch-1 0.66% 1.747GiB / 5.772GiB
+pg-search-sync-redpanda-1 1.54% 488.2MiB / 5.772GiB
+2026-11-02T21:09:36Z start es-429-every-2nd; host load: 19.39 19.01 20.46
+2026-11-02T21:12:07Z end es-429-every-2nd rc=0
+/pg-search-sync-cdc-1 oom=false restarts=0 status=running
+/pg-search-sync-elasticsearch-1 oom=false restarts=0 status=running
+/pg-search-sync-indexer-1 oom=false restarts=0 status=running
+/pg-search-sync-postgres-1 oom=false restarts=0 status=running
+/pg-search-sync-redpanda-1 oom=false restarts=0 status=running
+/pg-search-sync-topics-1 oom=false restarts=0 status=exited
+pg-search-sync-indexer-1 1.60% 6.113MiB / 5.772GiB
+pg-search-sync-cdc-1 0.36% 63.2MiB / 5.772GiB
+pg-search-sync-postgres-1 1.21% 208MiB / 5.772GiB
+pg-search-sync-elasticsearch-1 0.57% 1.746GiB / 5.772GiB
+pg-search-sync-redpanda-1 5.60% 523.5MiB / 5.772GiB
+2026-11-02T21:12:10Z start es-429-60s-kill-in-drain; host load: 17.26 18.19 19.88
+2026-11-02T21:14:57Z end es-429-60s-kill-in-drain rc=0
+/pg-search-sync-cdc-1 oom=false restarts=0 status=running
+/pg-search-sync-elasticsearch-1 oom=false restarts=0 status=running
+/pg-search-sync-indexer-1 oom=false restarts=0 status=running
+/pg-search-sync-postgres-1 oom=false restarts=0 status=running
+/pg-search-sync-redpanda-1 oom=false restarts=0 status=running
+/pg-search-sync-topics-1 oom=false restarts=0 status=exited
+pg-search-sync-indexer-1 2.16% 5.492MiB / 5.772GiB
+pg-search-sync-cdc-1 0.42% 52.28MiB / 5.772GiB
+pg-search-sync-postgres-1 0.44% 224.3MiB / 5.772GiB
+pg-search-sync-elasticsearch-1 1.59% 1.747GiB / 5.772GiB
+pg-search-sync-redpanda-1 1.94% 560.2MiB / 5.772GiB
+2026-11-02T21:14:59Z start es-429-60s-kill-in-drain; host load: 26.34 20.51 20.40
+2026-11-02T21:17:37Z end es-429-60s-kill-in-drain rc=0
+/pg-search-sync-cdc-1 oom=false restarts=0 status=running
+/pg-search-sync-elasticsearch-1 oom=false restarts=0 status=running
+/pg-search-sync-indexer-1 oom=false restarts=0 status=running
+/pg-search-sync-postgres-1 oom=false restarts=0 status=running
+/pg-search-sync-redpanda-1 oom=false restarts=0 status=running
+/pg-search-sync-topics-1 oom=false restarts=0 status=exited
+pg-search-sync-indexer-1 1.63% 6.039MiB / 5.772GiB
+pg-search-sync-cdc-1 0.41% 57.17MiB / 5.772GiB
+pg-search-sync-postgres-1 0.03% 247.5MiB / 5.772GiB
+pg-search-sync-elasticsearch-1 1.20% 1.751GiB / 5.772GiB
+pg-search-sync-redpanda-1 5.31% 594.7MiB / 5.772GiB
+2026-11-02T21:17:39Z matrix done
+2026-11-02T21:17:43Z stack down, lock released after 1636 s

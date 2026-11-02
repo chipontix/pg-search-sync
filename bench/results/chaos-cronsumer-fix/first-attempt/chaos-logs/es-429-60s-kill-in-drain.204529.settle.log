@@ -1,0 +1,3 @@
+ Container pg-search-sync-reconcile-run-b3903226a342 Creating 
+ Container pg-search-sync-reconcile-run-b3903226a342 Created 
+{"source_rows":336109,"es_live_docs":336109,"missing":0,"stale":0,"extra":0,"ahead":0,"elapsed":"2.839s"}

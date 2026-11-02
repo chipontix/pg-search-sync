@@ -1,0 +1,1 @@
+{"target_rate":2000,"achieved_rate":2000.025464333145,"writes":240004,"write_errors":0,"samples":0,"not_found":0,"p50_ms":0,"p90_ms":0,"p99_ms":0,"max_ms":0,"duration_s":120.000472134,"poll_interval_ms":20,"probe_p99_ms":0,"probe_max_ms":0,"pipeline_p50_ms":291.23985734174175,"pipeline_p99_ms":24780.32585300842,"source":"postgres"}

@@ -1,0 +1,4 @@
+indexer-1  | {"time":"2026-11-02T21:07:19.091956346Z","level":"INFO","msg":"listening","addr":":8091"}
+indexer-1  | {"level":"INFO","time":"2026-11-02T21:07:19.101Z","sourceLocation":"v2@v2.6.19/consumer_base.go:109","message":"Topic [[products.cdc]] verified successfully!"}
+indexer-1  | {"level":"INFO","time":"2026-11-02T21:07:19.107Z","sourceLocation":"kafka-cronsumer@v1.8.11/cronsumer.go:17","message":"Topic [products.retry] verified successfully!"}
+indexer-1  | {"time":"2026-11-02T21:07:19.108032915Z","level":"INFO","msg":"indexer started","index":"products"}

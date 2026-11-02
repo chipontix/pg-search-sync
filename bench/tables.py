@@ -125,11 +125,9 @@ SCENARIOS = {
 }
 
 
-def chaos():
-    data = load("chaos.jsonl")
-    groups = by(data, "scenario")
+def chaos_table(data):
     rows = []
-    for (s,), g in groups.items():
+    for (s,), g in by(data, "scenario").items():
         rec = [r["reconcile"] for r in g]
         label = SCENARIOS.get(s, s) + (f" ({len(g)} runs)" if len(g) > 1 else "")
         bad = [sum(x[k] for x in rec) for k in ("missing", "stale", "extra")]
@@ -141,11 +139,36 @@ def chaos():
             " / ".join(map(str, bad)),
             span([r["converge_s"] for r in g], unit=" s"),
         ])
+    return table(["scenario", "through retry topic", "DLQ", "missing / stale / extra", "converged in"], rows)
+
+
+def chaos():
+    data = load("chaos.jsonl")
     sizes = [x.get("pg_rows", x.get("source_rows")) for x in (r["reconcile"] for r in data)]
     passes = [float(r["reconcile"]["elapsed"].rstrip("s")) for r in data]
-    return table(["scenario", "through retry topic", "DLQ", "missing / stale / extra", "converged in"], rows) + \
+    return chaos_table(data) + \
         f"\n\n{span(sizes, lambda x: f'{x / 1e6:.2f}')}M rows at the time of the checks; one full reconcile" \
         f" pass took {span(passes, unit=' s')}."
+
+
+def chaos_fix():
+    """The matrix on the cronsumer-commit-after-handled branch."""
+    data = load("chaos-cronsumer-fix/chaos.jsonl")
+    rec = [r["reconcile"] for r in data]
+    lost = sum(x[k] for x in rec for k in ("missing", "stale", "extra"))
+    sizes = [x["source_rows"] for x in rec]
+    lags = []
+    for f in sorted((RESULTS / "chaos-cronsumer-fix" / "chaos-logs").glob("*.group-at-kill.txt")):
+        lags.append(int(f.read_text().split("\n")[0].split()[1]))
+    log = (RESULTS / "chaos-cronsumer-fix" / "run.log").read_text()
+    loads = [float(x) for x in re.findall(r"host load: ([\d.]+)", log)]
+    return chaos_table(data) + (
+        f"\n\n{len(data)} runs, {n(sum(r['writes'] for r in data))} writes,"
+        f" {lost} documents missing, stale or extra."
+        f" {span(sizes, lambda x: f'{x / 1e6:.2f}')}M rows at the checks."
+        f" At the {len(lags)} drain kills the retry topic had {span(lags)} records behind"
+        f" a committed offset that was moving."
+        f" Host load average at the start of each run: {span(loads)}.")
 
 
 def couchbase():
@@ -170,7 +193,7 @@ def couchbase():
     return out
 
 
-BLOCKS = {"latency": latency, "catchup": catchup, "chaos": chaos, "couchbase": couchbase}
+BLOCKS = {"latency": latency, "catchup": catchup, "chaos": chaos, "chaos_fix": chaos_fix, "couchbase": couchbase}
 
 
 def render(readme):

@@ -1,0 +1,3 @@
+ Container pg-search-sync-reconcile-run-dc930420bd20 Creating 
+ Container pg-search-sync-reconcile-run-dc930420bd20 Created 
+{"source_rows":479177,"es_live_docs":479177,"missing":0,"stale":0,"extra":0,"ahead":0,"elapsed":"4.545s"}
