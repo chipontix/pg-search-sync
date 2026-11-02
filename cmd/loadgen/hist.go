@@ -2,6 +2,7 @@ package main
 
 import (
 	"log/slog"
+	"math"
 	"net/http"
 	"time"
 
@@ -43,6 +44,9 @@ func histQuantile(before, after []*dto.Bucket, q float64) float64 {
 	}
 	delta := make([]float64, len(after))
 	for i := range after {
+		if after[i].GetCumulativeCount() < before[i].GetCumulativeCount() {
+			return 0 // the target restarted and its counters were reset
+		}
 		delta[i] = float64(after[i].GetCumulativeCount() - before[i].GetCumulativeCount())
 	}
 	total := delta[len(delta)-1]
@@ -54,6 +58,9 @@ func histQuantile(before, after []*dto.Bucket, q float64) float64 {
 	for i, c := range delta {
 		upper := after[i].GetUpperBound()
 		if c >= rank {
+			if math.IsInf(upper, 1) {
+				return lower
+			}
 			return lower + (upper-lower)*(rank-prev)/(c-prev)
 		}
 		lower, prev = upper, c
