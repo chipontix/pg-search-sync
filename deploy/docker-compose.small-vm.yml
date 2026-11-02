@@ -1,0 +1,26 @@
+# Layer on top of docker-compose.yml with COMPOSE_EXTRA=deploy/docker-compose.small-vm.yml:
+# a 4 CPU / 6 GB VM shared with other stacks, host ports moved to 25000+.
+services:
+  postgres:
+    command: [postgres, -c, wal_level=logical, -c, max_wal_senders=10, -c, max_replication_slots=10,
+              -c, shared_buffers=256MB, -c, max_connections=300, -c, max_slot_wal_keep_size=5GB]
+    ports: !override ["25432:5432"]
+  redpanda:
+    command: [redpanda, start, --mode, dev-container, --smp, "1", --memory, 1G,
+              --kafka-addr, "internal://0.0.0.0:9092,external://0.0.0.0:19092",
+              --advertise-kafka-addr, "internal://redpanda:9092,external://localhost:25092"]
+    ports: !override ["25092:19092", "25644:9644"]
+  elasticsearch:
+    environment:
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+    ports: !override ["25200:9200"]
+  cdc:
+    ports: !override ["25112:2112"]
+  indexer:
+    ports: !override ["25091:8091"]
+  api:
+    ports: !override ["25080:8080"]
+  prometheus:
+    ports: !override ["25090:9090"]
+  grafana:
+    ports: !override ["25300:3000"]
