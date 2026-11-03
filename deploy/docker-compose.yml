@@ -50,6 +50,9 @@ services:
   cdc:
     <<: *app
     command: [cdc]
+    environment:
+      <<: *app-env
+      SNAPSHOT: ${SNAPSHOT:-}  # initial: copy existing rows once before streaming
     depends_on: {postgres: {condition: service_healthy}, topics: {condition: service_completed_successfully}}
     ports: ["2112:2112"]
 

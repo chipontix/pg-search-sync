@@ -1,0 +1,98 @@
+# 2026-11-03T14:35:00Z 0f815b9+worktree
+=== RUN   TestSnapshotConfig
+--- PASS: TestSnapshotConfig (0.00s)
+=== RUN   TestSnapshotRowDecodes
+--- PASS: TestSnapshotRowDecodes (0.00s)
+=== RUN   TestSnapshotWithConcurrentUpdates
+2026/11/03 17:35:04 github.com/testcontainers/testcontainers-go - Connected to docker: 
+  Server Version: 29.5.2
+  API Version: 1.54
+  Operating System: Ubuntu 24.04.4 LTS
+  Total Memory: 5910 MB
+  Testcontainers for Go Version: v0.44.0
+  Resolved Docker Host: unix:///home/dev/.colima/default/docker.sock
+  Resolved Docker Socket Path: /home/dev/.colima/default/docker.sock
+  Test SessionID: f82e70f14532d9e65d5de85aa49429de42fe6cddf9de0ab99cf2d39d2c1aa55b
+  Test ProcessID: a0486b37-a967-44d4-a58a-c3688efa3b5a
+2026/11/03 17:35:04 🐳 Creating container for image postgres:17
+2026/11/03 17:35:04 ✅ Container created: dd9307777b85
+2026/11/03 17:35:04 🐳 Starting container: dd9307777b85
+2026/11/03 17:35:04 ✅ Container started: dd9307777b85
+2026/11/03 17:35:04 ⏳ Waiting for container id dd9307777b85 image: postgres:17. Waiting for: all of: [log message "database system is ready to accept connections" (occurrence: 2), port 5432/tcp to be listening]
+2026/11/03 17:35:05 🔔 Container is ready: dd9307777b85
+2026/11/03 17:35:05 🐳 Creating container for image redpandadata/redpanda:v25.2.1
+2026/11/03 17:35:05 ✅ Container created: 8cef4bc2fede
+2026/11/03 17:35:05 🐳 Starting container: 8cef4bc2fede
+2026/11/03 17:35:06 ✅ Container started: 8cef4bc2fede
+2026/11/03 17:35:06 ⏳ Waiting for container id 8cef4bc2fede image: redpandadata/redpanda:v25.2.1. Waiting for: all of: [port 9092/tcp to be mapped, port 9644/tcp to be mapped, port 8081/tcp to be mapped, port 8082/tcp to be mapped]
+2026/11/03 17:35:06 🔔 Container is ready: 8cef4bc2fede
+2026/11/03 17:35:07 🐳 Creating container for image docker.elastic.co/elasticsearch/elasticsearch:8.19.4
+2026/11/03 17:35:07 ✅ Container created: dca4fd382abc
+2026/11/03 17:35:07 🐳 Starting container: dca4fd382abc
+2026/11/03 17:35:07 ✅ Container started: dca4fd382abc
+2026/11/03 17:35:07 ⏳ Waiting for container id dca4fd382abc image: docker.elastic.co/elasticsearch/elasticsearch:8.19.4. Waiting for: all of: [HTTP GET request on port 9200 path "/_cluster/health?wait_for_status=yellow"]
+2026/11/03 17:35:19 🔔 Container is ready: dca4fd382abc
+used config: {"logger":{"level":"INFO"},"host":"localhost","username":"app","password":"*******","database":"catalog","publication":{"name":"products_pub","operations":["INSERT","UPDATE","DELETE"],"tables":[{"name":"products","replicaIdentity":"FULL","schema":"public"}],"createIfNotExists":true},"heartbeat":{"table":{"name":"","replicaIdentity":""},"interval":0},"slot":{"name":"products_slot","slotActivityCheckerInterval":3000,"protoVersion":2,"createIfNotExists":true},"snapshot":{"mode":"initial","instanceId":"","id":"","tables":null,"chunkSize":8000,"claimTimeout":30000000000,"heartbeatInterval":5000000000,"enabled":true,"resnapshot":false},"port":32787,"metric":{"port":65388},"debugMode":false,"extensionSupport":{"enableTimeScaleDB":false}}
+{"time":"2026-11-03T17:35:19.977606+03:00","level":"INFO","msg":"publication created","name":"products_pub"}
+{"time":"2026-11-03T17:35:19.977663+03:00","level":"INFO","msg":"publication","info":{"name":"products_pub","operations":["INSERT","UPDATE","DELETE"],"tables":[{"name":"products","replicaIdentity":"FULL","schema":"public"}],"createIfNotExists":true}}
+{"time":"2026-11-03T17:35:20.032322+03:00","level":"INFO","msg":"[snapshot-connection-pool] creating connection pool","size":5}
+{"time":"2026-11-03T17:35:20.128685+03:00","level":"INFO","msg":"[snapshot-connection-pool] connection pool ready","size":5}
+{"time":"2026-11-03T17:35:20.13574+03:00","level":"INFO","msg":"waiting for connector start..."}
+{"time":"2026-11-03T17:35:20.135785+03:00","level":"INFO","msg":"server starting on port :65388"}
+{"time":"2026-11-03T17:35:20.183045+03:00","level":"INFO","msg":"replication slot created","name":"products_slot"}
+{"time":"2026-11-03T17:35:20.228797+03:00","level":"INFO","msg":"[coordinator] exporting snapshot"}
+{"time":"2026-11-03T17:35:20.230635+03:00","level":"INFO","msg":"[coordinator] snapshot exported","snapshotID":"0000000B-00000005-1"}
+{"time":"2026-11-03T17:35:20.230663+03:00","level":"INFO","msg":"[coordinator] snapshot transaction ready for workers"}
+{"time":"2026-11-03T17:35:20.230674+03:00","level":"INFO","msg":"[coordinator] creating metadata and chunks"}
+{"time":"2026-11-03T17:35:20.234086+03:00","level":"INFO","msg":"[chunk] range chunks created","table":"products","chunkSize":8000,"numChunks":7,"rangeMin":1,"rangeMax":50000}
+{"time":"2026-11-03T17:35:20.238928+03:00","level":"INFO","msg":"[coordinator] chunks created","table":"public.products","chunks":7}
+{"time":"2026-11-03T17:35:20.239692+03:00","level":"INFO","msg":"[coordinator] metadata committed","totalChunks":7,"lsn":"0/26D0E78"}
+{"level":"INFO","time":"2026-11-03T17:35:20.514Z","sourceLocation":"v2@v2.6.19/consumer_base.go:109","message":"Topic [[products.cdc]] verified successfully!"}
+{"level":"INFO","time":"2026-11-03T17:35:20.519Z","sourceLocation":"kafka-cronsumer@v1.8.11/cronsumer.go:17","message":"Topic [products.retry] verified successfully!"}
+{"time":"2026-11-03T17:35:20.519913+03:00","level":"INFO","msg":"indexer started","index":"products"}
+{"time":"2026-11-03T17:35:22.665567+03:00","level":"INFO","msg":"[snapshot] all chunks completed, finalizing snapshot"}
+{"time":"2026-11-03T17:35:22.666256+03:00","level":"INFO","msg":"[metadata] job marked as completed","slotName":"products_slot"}
+{"time":"2026-11-03T17:35:22.666283+03:00","level":"INFO","msg":"[snapshot] closing all connections"}
+{"time":"2026-11-03T17:35:22.66632+03:00","level":"INFO","msg":"[coordinator] committing and closing snapshot export connection"}
+{"time":"2026-11-03T17:35:22.667+03:00","level":"INFO","msg":"[snapshot-connection-pool] closing all connections","count":5}
+{"time":"2026-11-03T17:35:22.66713+03:00","level":"INFO","msg":"[snapshot-connection-pool] connection pool closed"}
+{"time":"2026-11-03T17:35:22.667185+03:00","level":"INFO","msg":"[snapshot] all connections closed"}
+{"time":"2026-11-03T17:35:22.667213+03:00","level":"INFO","msg":"[snapshot] execution completed","instanceID":"Mac.local-72144","duration":2427467250}
+{"time":"2026-11-03T17:35:22.667229+03:00","level":"INFO","msg":"snapshot completed successfully"}
+{"time":"2026-11-03T17:35:22.688662+03:00","level":"INFO","msg":"slot capturing..."}
+{"time":"2026-11-03T17:35:23.740954+03:00","level":"INFO","msg":"system identification","systemID":"7703953727477317670","timeline":1,"xLogPos":41461472,"database:":"catalog"}
+{"time":"2026-11-03T17:35:23.741027+03:00","level":"INFO","msg":"fetching snapshot LSN from database","slotName":"products_slot"}
+{"time":"2026-11-03T17:35:23.762688+03:00","level":"INFO","msg":"fetched snapshot LSN from database","slotName":"products_slot","snapshotLSN":"0/26D0E78"}
+{"time":"2026-11-03T17:35:23.769841+03:00","level":"INFO","msg":"replication started from snapshot LSN","slot":"products_slot","lsn":"0/26D0E78"}
+{"time":"2026-11-03T17:35:23.769942+03:00","level":"INFO","msg":"postgres message sink started"}
+{"time":"2026-11-03T17:35:23.771159+03:00","level":"INFO","msg":"cdc stream started"}
+{"time":"2026-11-03T17:35:23.77118+03:00","level":"INFO","msg":"slot captured"}
+{"time":"2026-11-03T17:35:23.771498+03:00","level":"INFO","msg":"bulk process started"}
+{"time":"2026-11-03T17:35:23.771247+03:00","level":"INFO","msg":"postgres message process started"}
+    snapshot_integration_test.go:82: updates: 2237 in total, 1060 while the snapshot job was open
+{"time":"2026-11-03T17:35:32.3446+03:00","level":"INFO","msg":"postgres message process stopped"}
+{"level":"INFO","time":"2026-11-03T17:35:32.344Z","sourceLocation":"v2@v2.6.19/consumer_base.go:414","message":"Stop is called!"}
+{"time":"2026-11-03T17:35:32.344728+03:00","level":"INFO","msg":"[snapshot] closing all connections"}
+{"time":"2026-11-03T17:35:32.344763+03:00","level":"INFO","msg":"[snapshot] all connections closed"}
+2026/11/03 17:35:32 🐳 Stopping container: dca4fd382abc
+{"time":"2026-11-03T17:35:32.564114+03:00","level":"INFO","msg":"stream stopped"}
+{"time":"2026-11-03T17:35:32.564308+03:00","level":"INFO","msg":"postgres connection closed"}
+{"time":"2026-11-03T17:35:32.564326+03:00","level":"INFO","msg":"postgres message sink stopped"}
+{"time":"2026-11-03T17:35:32.564337+03:00","level":"INFO","msg":"postgres message process stopped"}
+{"time":"2026-11-03T17:35:32.564424+03:00","level":"INFO","msg":"server stopped"}
+{"time":"2026-11-03T17:35:32.564448+03:00","level":"INFO","msg":"[connector] connector closed successfully"}
+2026/11/03 17:35:34 ✅ Container stopped: dca4fd382abc
+2026/11/03 17:35:34 🐳 Terminating container: dca4fd382abc
+2026/11/03 17:35:34 🚫 Container terminated: dca4fd382abc
+2026/11/03 17:35:34 🐳 Stopping container: 8cef4bc2fede
+2026/11/03 17:35:35 ✅ Container stopped: 8cef4bc2fede
+2026/11/03 17:35:35 🐳 Terminating container: 8cef4bc2fede
+2026/11/03 17:35:35 🚫 Container terminated: 8cef4bc2fede
+2026/11/03 17:35:35 🐳 Stopping container: dd9307777b85
+2026/11/03 17:35:35 ✅ Container stopped: dd9307777b85
+2026/11/03 17:35:35 🐳 Terminating container: dd9307777b85
+2026/11/03 17:35:35 🚫 Container terminated: dd9307777b85
+--- PASS: TestSnapshotWithConcurrentUpdates (30.93s)
+PASS
+ok  	github.com/chipontix/pg-search-sync/internal/pipeline	32.645s
+exit 0

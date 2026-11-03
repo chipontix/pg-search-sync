@@ -31,77 +31,10 @@ func TestPipeline(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	pg, err := tcpostgres.Run(ctx, "postgres:17",
-		tcpostgres.WithDatabase("catalog"), tcpostgres.WithUsername("app"), tcpostgres.WithPassword("app"),
-		tcpostgres.WithInitScripts(filepath.Join("..", "..", "deploy", "postgres", "init.sql")),
-		testcontainers.WithCmdArgs("-c", "wal_level=logical"),
-		tcpostgres.BasicWaitStrategies(),
-	)
-	testcontainers.CleanupContainer(t, pg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rp, err := redpanda.Run(ctx, "redpandadata/redpanda:v25.2.1")
-	testcontainers.CleanupContainer(t, rp)
-	if err != nil {
-		t.Fatal(err)
-	}
-	esC, err := testcontainers.Run(ctx, "docker.elastic.co/elasticsearch/elasticsearch:8.19.4",
-		testcontainers.WithEnv(map[string]string{
-			"discovery.type": "single-node", "xpack.security.enabled": "false", "ES_JAVA_OPTS": "-Xms512m -Xmx512m",
-		}),
-		testcontainers.WithExposedPorts("9200/tcp"),
-		testcontainers.WithWaitStrategy(wait.ForHTTP("/_cluster/health?wait_for_status=yellow").WithPort("9200/tcp").WithStartupTimeout(3*time.Minute)),
-	)
-	testcontainers.CleanupContainer(t, esC)
-	if err != nil {
-		t.Fatal(err)
-	}
+	st := startStack(t, ctx)
+	runPipeline(t, ctx, time.Minute)
 
-	pgHost, _ := pg.Host(ctx)
-	pgPort, _ := pg.MappedPort(ctx, "5432/tcp")
-	broker, err := rp.KafkaSeedBroker(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	esURL, err := esC.PortEndpoint(ctx, "9200/tcp", "http")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, topic := range []string{"products.cdc", "products.retry", "products.dlq"} {
-		createTopic(t, broker, topic)
-	}
-
-	t.Setenv("PG_HOST", pgHost)
-	t.Setenv("PG_PORT", pgPort.Port())
-	t.Setenv("KAFKA_BROKERS", broker)
-	t.Setenv("ES_URL", esURL)
-	t.Setenv("METRIC_PORT", strconv.Itoa(freePort(t)))
-	t.Setenv("PRODUCER_BATCH_TICK", "20ms")
-
-	runCtx, stop := context.WithCancel(ctx)
-	cdcDone, ixDone := make(chan error, 1), make(chan error, 1)
-	cdcReady := make(chan struct{})
-	go func() { cdcDone <- RunCDC(runCtx, func() { close(cdcReady) }) }()
-	go func() { ixDone <- RunIndexer(runCtx, prometheus.NewRegistry()) }()
-	t.Cleanup(func() {
-		stop()
-		for _, ch := range []chan error{cdcDone, ixDone} {
-			select {
-			case <-ch:
-			case <-time.After(30 * time.Second):
-				t.Error("pipeline did not stop within 30s")
-			}
-		}
-	})
-
-	select {
-	case <-cdcReady:
-	case <-time.After(60 * time.Second):
-		t.Fatal("cdc not ready within 60s")
-	}
-
-	db, err := pgx.Connect(ctx, fmt.Sprintf("postgres://app:app@%s:%s/catalog", pgHost, pgPort.Port()))
+	db, err := pgx.Connect(ctx, st.dsn())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +78,7 @@ func TestPipeline(t *testing.T) {
 			ID: 1, Version: version - 2, Title: "stale replay", Brand: "Mavi", Category: "jeans"}})
 		// Same balancer as the CDC producer, so the replay lands on the
 		// partition that holds the live history of id 1.
-		w := &segkafka.Writer{Addr: segkafka.TCP(broker), Topic: "products.cdc", Balancer: &segkafka.Hash{}}
+		w := &segkafka.Writer{Addr: segkafka.TCP(st.broker), Topic: "products.cdc", Balancer: &segkafka.Hash{}}
 		if err := w.WriteMessages(ctx, segkafka.Message{Key: []byte("1"), Value: stale}); err != nil {
 			t.Fatal(err)
 		}
@@ -169,6 +102,95 @@ func TestPipeline(t *testing.T) {
 			VALUES (1, 'A-1', 'Mavi skinny jeans', 'Mavi', 'jeans', 59900, 2); COMMIT`)
 		eventually(t, "re-inserted row visible", func() bool { return search(t, api.URL, "q=skinny").Total == 1 })
 	})
+}
+
+type stack struct{ pgHost, pgPort, broker, es string }
+
+func (s stack) dsn() string {
+	return fmt.Sprintf("postgres://app:app@%s:%s/catalog", s.pgHost, s.pgPort)
+}
+
+// startStack starts PostgreSQL, Redpanda and Elasticsearch and points the
+// pipeline's env at them.
+func startStack(t *testing.T, ctx context.Context) stack {
+	t.Helper()
+	pg, err := tcpostgres.Run(ctx, "postgres:17",
+		tcpostgres.WithDatabase("catalog"), tcpostgres.WithUsername("app"), tcpostgres.WithPassword("app"),
+		tcpostgres.WithInitScripts(filepath.Join("..", "..", "deploy", "postgres", "init.sql")),
+		testcontainers.WithCmdArgs("-c", "wal_level=logical"),
+		tcpostgres.BasicWaitStrategies(),
+	)
+	testcontainers.CleanupContainer(t, pg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rp, err := redpanda.Run(ctx, "redpandadata/redpanda:v25.2.1")
+	testcontainers.CleanupContainer(t, rp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	esC, err := testcontainers.Run(ctx, "docker.elastic.co/elasticsearch/elasticsearch:8.19.4",
+		testcontainers.WithEnv(map[string]string{
+			"discovery.type": "single-node", "xpack.security.enabled": "false", "ES_JAVA_OPTS": "-Xms512m -Xmx512m",
+		}),
+		testcontainers.WithExposedPorts("9200/tcp"),
+		testcontainers.WithWaitStrategy(wait.ForHTTP("/_cluster/health?wait_for_status=yellow").WithPort("9200/tcp").WithStartupTimeout(3*time.Minute)),
+	)
+	testcontainers.CleanupContainer(t, esC)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var st stack
+	st.pgHost, _ = pg.Host(ctx)
+	pgPort, _ := pg.MappedPort(ctx, "5432/tcp")
+	st.pgPort = pgPort.Port()
+	st.broker, err = rp.KafkaSeedBroker(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st.es, err = esC.PortEndpoint(ctx, "9200/tcp", "http")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, topic := range []string{"products.cdc", "products.retry", "products.dlq"} {
+		createTopic(t, st.broker, topic)
+	}
+
+	t.Setenv("PG_HOST", st.pgHost)
+	t.Setenv("PG_PORT", st.pgPort)
+	t.Setenv("KAFKA_BROKERS", st.broker)
+	t.Setenv("ES_URL", st.es)
+	t.Setenv("METRIC_PORT", strconv.Itoa(freePort(t)))
+	t.Setenv("PRODUCER_BATCH_TICK", "20ms")
+	return st
+}
+
+// runPipeline starts the CDC connector and the indexer in process, stops
+// them at the end of the test and waits up to readyIn for CDC to stream.
+func runPipeline(t *testing.T, ctx context.Context, readyIn time.Duration) {
+	t.Helper()
+	runCtx, stop := context.WithCancel(ctx)
+	cdcDone, ixDone := make(chan error, 1), make(chan error, 1)
+	cdcReady := make(chan struct{})
+	go func() { cdcDone <- RunCDC(runCtx, func() { close(cdcReady) }) }()
+	go func() { ixDone <- RunIndexer(runCtx, prometheus.NewRegistry()) }()
+	t.Cleanup(func() {
+		stop()
+		for _, ch := range []chan error{cdcDone, ixDone} {
+			select {
+			case <-ch:
+			case <-time.After(30 * time.Second):
+				t.Error("pipeline did not stop within 30s")
+			}
+		}
+	})
+
+	select {
+	case <-cdcReady:
+	case <-time.After(readyIn):
+		t.Fatalf("cdc not ready within %s", readyIn)
+	}
 }
 
 type searchResult struct {

@@ -74,6 +74,17 @@ At-least-once end to end, made idempotent at the sink.
    in the index (the trigger bumps the version, CDC re-emits them) and writes
    tombstones for documents whose row is gone. See
    [the cronsumer finding](docs/upstream.md) for why it exists.
+7. **Initial snapshot, opt-in.** By default rows written before the slot
+   exists are not indexed. `SNAPSHOT=initial` on `cdc` copies the table once
+   through go-pq-cdc's snapshotter: it creates the slot, records the current
+   LSN, exports a snapshot and copies the rows in chunks, then streams the WAL
+   from that LSN. A row changed while the copy runs comes twice, old copy then
+   new WAL event; one changed between the LSN and the export comes new copy
+   then old WAL event, which the external version rejects. The integration
+   test seeds 50,000 rows and runs updates during the copy: 1,060 of 2,237
+   updates landed while the snapshot job was open, and the index matched the
+   table in count and sum of versions
+   ([log](bench/results/snapshot/it.log), `make it`).
 
 ## Results
 
@@ -222,7 +233,7 @@ provisioned with one dashboard:
 | what | how | |
 |---|---|---|
 | unit | `make test` (`go test -race ./...`) | bulk outcome routing against a fake ES, tombstone versions, histogram quantiles |
-| integration | `make it` | testcontainers-go: PostgreSQL, Redpanda, Elasticsearch; cdc + indexer in process under `-race`; insert/update/delete/re-insert and a replayed old event |
+| integration | `make it` | testcontainers-go: PostgreSQL, Redpanda, Elasticsearch; cdc + indexer in process under `-race`; insert/update/delete/re-insert and a replayed old event; `SNAPSHOT=initial` with updates running while the snapshot is read |
 | e2e | `make e2e` | Stove runs the `cmd/all` binary (built with `-race`) against PostgreSQL, Kafka, Elasticsearch; includes pausing Elasticsearch |
 
 All three run in [CI](.github/workflows/ci.yml).
@@ -231,8 +242,10 @@ All three run in [CI](.github/workflows/ci.yml).
 
 - One node of everything, one laptop VM, shared host; absolute numbers are
   for comparison within this setup, not capacity planning.
-- No initial snapshot: rows written before the slot exists are not indexed
-  (go-pq-cdc-kafka supports snapshots; not wired here).
+- The initial snapshot (`SNAPSHOT=initial`) is off by default and covered by
+  one integration test on a 50k-row table, not benchmarked: its speed on
+  millions of rows and a crash in the middle of it (the library restarts the
+  copy from scratch) are not measured.
 - Tombstones are never purged. A purge older than the longest possible retry
   (20 × 15 s) would be safe; not implemented.
 - The schema is fixed: `dynamic: strict` mapping and a hand-written event.
