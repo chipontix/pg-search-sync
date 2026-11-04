@@ -36,7 +36,7 @@ make reproduce   # every number below (about 2 hours, Docker only + Go + JDK 21 
 
 | Piece | Library | Role |
 |---|---|---|
-| `cmd/cdc` | [go-pq-cdc-kafka](https://github.com/Trendyol/go-pq-cdc-kafka) v1.4.5 | Reads `public.products` from a replication slot; one Kafka message per row change; acknowledges the WAL position only after Kafka accepted the batch. |
+| `cmd/cdc` | [go-pq-cdc-kafka](https://github.com/Trendyol/go-pq-cdc-kafka) v1.4.5 | Reads `public.products` from a replication slot; one Kafka message per row change; acknowledges the WAL position only after Kafka accepted the batch. With `SNAPSHOT=initial`, copies the existing rows first. |
 | `cmd/indexer` | [kafka-konsumer](https://github.com/Trendyol/kafka-konsumer) v2.6.19, [kafka-cronsumer](https://github.com/Trendyol/kafka-cronsumer) v1.8.11 | Batch consumer, one `_bulk` per batch; in-process retries, then the retry topic, then the DLQ. |
 | `cmd/api` | stdlib | `GET /search?q=&brand=&category=&min_price=&max_price=&limit=` |
 | `cmd/reconcile` | pgx | Merge-joins the source and the index by id, exits 1 on any missing, stale or extra document; `-repair` re-emits them. |
@@ -232,7 +232,7 @@ provisioned with one dashboard:
 
 | what | how | |
 |---|---|---|
-| unit | `make test` (`go test -race ./...`) | bulk outcome routing against a fake ES, tombstone versions, histogram quantiles |
+| unit | `make test` (`go test -race ./...`) | bulk outcome routing against a fake ES, tombstone versions, histogram quantiles, `SNAPSHOT` values and snapshot row decoding |
 | integration | `make it` | testcontainers-go: PostgreSQL, Redpanda, Elasticsearch; cdc + indexer in process under `-race`; insert/update/delete/re-insert and a replayed old event; `SNAPSHOT=initial` with updates running while the snapshot is read |
 | e2e | `make e2e` | Stove runs the `cmd/all` binary (built with `-race`) against PostgreSQL, Kafka, Elasticsearch; includes pausing Elasticsearch |
 
@@ -272,8 +272,9 @@ and the fork lost 0 of 20, with 4 duplicates (24 handler calls for 20
 records): the fix makes the retry path at-least-once, not exactly-once, so the
 handler still has to be idempotent (here, `version_type=external` makes it so).
 Raw output: [`bench/results/cronsumer-crash/`](bench/results/cronsumer-crash/).
-The full failure matrix then ran on the `cronsumer-commit-after-handled` branch,
-with the indexer binary built from the fork:
+The full failure matrix then ran on the `cronsumer-commit-after-handled` branch
+(commit `d227aac`; results committed in `0f815b9`), with the indexer binary
+built from the fork:
 
 <!-- generated:chaos_fix -->
 | scenario | through retry topic | DLQ | missing / stale / extra | converged in |
